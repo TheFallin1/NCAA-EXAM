@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Records — NCAA{% endblock %}
+{% block page_heading %}Examination Records{% endblock %}
+{% block page_subheading %}Search, filter, and manage scheduled examinations{% endblock %}
+
+{% block content %}
+<div class="card mb-6">
+  <form method="get" class="grid gap-4 md:grid-cols-6" x-data="searchDebounce()">
+    <div class="md:col-span-2">
+      <label class="mb-1 block text-xs font-medium text-slate-500">Search</label>
+      <input type="search" name="q" value="{{ filters.q }}" class="form-input" placeholder="Name, exam #, receipt, company..." @input="submit($el.form)">
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">Exam Type</label>
+      <select name="exam_type" class="form-input" onchange="this.form.submit()">
+        <option value="">All types</option>
+        {% for value, label in exam_types %}
+        <option value="{{ value }}" {% if filters.exam_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">From</label>
+      <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-input" onchange="this.form.submit()">
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">To</label>
+      <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-input" onchange="this.form.submit()">
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">Sort</label>
+      <select name="sort" class="form-input" onchange="this.form.submit()">
+        <option value="-exam_date" {% if filters.sort == '-exam_date' %}selected{% endif %}>Date (newest)</option>
+        <option value="exam_date" {% if filters.sort == 'exam_date' %}selected{% endif %}>Date (oldest)</option>
+        <option value="candidate_name" {% if filters.sort == 'candidate_name' %}selected{% endif %}>Name A–Z</option>
+      </select>
+    </div>
+    <div class="flex items-end gap-2 md:col-span-6">
+      <button type="submit" class="btn-primary">Apply</button>
+      <a href="{% url 'exams:list' %}" class="btn-secondary">Clear</a>
+      <a href="{% url 'exams:schedule' %}" class="btn-primary ml-auto">+ Schedule New</a>
+    </div>
+  </form>
+</div>
+
+<div class="card overflow-hidden p-0">
+  {% if exams %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold">Candidate</th>
+          <th class="px-4 py-3 text-left font-semibold">Exam #</th>
+          <th class="px-4 py-3 text-left font-semibold">Type</th>
+          <th class="px-4 py-3 text-left font-semibold">Date / Time</th>
+          <th class="px-4 py-3 text-left font-semibold">Venue</th>
+          <th class="px-4 py-3 text-right font-semibold">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for exam in exams %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+          <td class="px-4 py-3 font-medium">{{ exam.candidate_name }}</td>
+          <td class="px-4 py-3">{{ exam.exam_number }}</td>
+          <td class="px-4 py-3">{{ exam.get_exam_type_display }}</td>
+          <td class="px-4 py-3">{{ exam.exam_date }} · {{ exam.exam_time }}</td>
+          <td class="px-4 py-3">{{ exam.venue }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'slips:detail' exam.pk %}" class="text-sky-600 hover:underline">Slip</a>
+            <span class="text-slate-300">|</span>
+            <a href="{% url 'exams:edit' exam.pk %}" class="text-sky-600 hover:underline">Edit</a>
+            <span class="text-slate-300">|</span>
+            <a href="{% url 'exams:delete' exam.pk %}" class="text-red-600 hover:underline">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+    <span class="text-sm text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="flex gap-2">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&exam_type={{ filters.exam_type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Previous</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&exam_type={{ filters.exam_type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="p-12 text-center">
+    <p class="text-lg font-medium text-slate-600 dark:text-slate-300">No examination records found</p>
+    <p class="mt-2 text-sm text-slate-500">Schedule a new examination or adjust your search filters.</p>
+    <a href="{% url 'exams:schedule' %}" class="btn-primary mt-6 inline-flex">Schedule Examination</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}System Portal — NCAA{% endblock %}
+{% block page_heading %}System Administration{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 md:grid-cols-3">
+  <a href="{% url 'system:officer_list' %}" class="card transition hover:shadow-md">
+    <h3 class="font-semibold text-[#1A1B5D] dark:text-sky-300">Manage Officers</h3>
+    <p class="mt-2 text-sm text-slate-500">Create, activate, and deactivate examination officers.</p>
+  </a>
+  <a href="{% url 'system:activity_log' %}" class="card transition hover:shadow-md">
+    <h3 class="font-semibold text-[#1A1B5D] dark:text-sky-300">Activity Logs</h3>
+    <p class="mt-2 text-sm text-slate-500">Monitor scheduling and record changes.</p>
+  </a>
+  <a href="{% url 'dashboard:export_csv' %}" class="card transition hover:shadow-md">
+    <h3 class="font-semibold text-[#1A1B5D] dark:text-sky-300">Export Records</h3>
+    <p class="mt-2 text-sm text-slate-500">Download examination records as CSV.</p>
+  </a>
+  <a href="/admin/" class="card transition hover:shadow-md">
+    <h3 class="font-semibold text-[#1A1B5D] dark:text-sky-300">Django Admin</h3>
+    <p class="mt-2 text-sm text-slate-500">Advanced database administration.</p>
+  </a>
+</div>
+{% endblock %}

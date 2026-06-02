@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Exam Slip — {{ exam.exam_number }}{% endblock %}
+{% block page_heading %}Examination Slip{% endblock %}
+{% block page_subheading %}{{ exam.candidate_name }} — {{ exam.exam_number }}{% endblock %}
+
+{% block content %}
+<div class="no-print mb-6 flex flex-wrap gap-3">
+  <button onclick="window.print()" class="btn-primary">Print Slip</button>
+  <a href="{% url 'slips:pdf' exam.pk %}" class="btn-secondary">Download PDF</a>
+  <a href="{% url 'exams:list' %}" class="btn-secondary">Back to Records</a>
+  <a href="{% url 'exams:schedule' %}" class="btn-primary">Schedule Another</a>
+</div>
+
+<div class="mx-auto max-w-xl print:max-w-none">
+  <div id="slip-print-area" class="rounded-xl border-2 border-[#1A1B5D] bg-white p-6 shadow-lg print:shadow-none">
+    <div class="border-b-2 border-sky-400 pb-4 text-center">
+      <img src="{% static 'images/ncaa_logo.png' %}" alt="NCAA" class="mx-auto h-20 w-20 rounded-full object-contain">
+      <h2 class="mt-2 text-lg font-bold uppercase text-[#1A1B5D]">{{ ncaa_full_name }}</h2>
+      <p class="text-xs text-slate-500">Aviation Examination Scheduling System</p>
+    </div>
+    <div class="my-4 rounded bg-[#1A1B5D] py-2 text-center text-sm font-bold text-white">EXAMINATION SLIP</div>
+    <dl class="space-y-2 text-sm">
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd>{{ exam.candidate_name }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd>{{ exam.exam_number }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd>{{ exam.receipt_number }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd>{{ exam.company_name }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd>{{ exam.get_exam_type_display }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd>{{ exam.exam_date }}</dd></div>
+      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd>{{ exam.exam_time }}</dd></div>
+      <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd>{{ exam.venue }}</dd></div>
+    </dl>
+    <div class="mt-4 flex items-end justify-between border-t pt-4">
+      <div class="text-xs text-slate-500">
+        <p>Generated: {{ generated_at|date:"d M Y, H:i" }}</p>
+        <p>Officer: {{ officer_username }}</p>
+      </div>
+      <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR" class="h-24 w-24">
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  body * { visibility: hidden; }
+  #slip-print-area, #slip-print-area * { visibility: visible; }
+  #slip-print-area { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}Activity Log — NCAA{% endblock %}
+{% block page_heading %}Activity Log{% endblock %}
+
+{% block content %}
+<div class="mb-4"><a href="{% url 'system:portal' %}" class="btn-secondary">Back</a></div>
+<div class="card overflow-hidden p-0">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50 dark:bg-slate-900">
+      <tr>
+        <th class="px-4 py-3 text-left">Time</th>
+        <th class="px-4 py-3 text-left">User</th>
+        <th class="px-4 py-3 text-left">Action</th>
+        <th class="px-4 py-3 text-left">Description</th>
+        <th class="px-4 py-3 text-left">IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr class="border-t border-slate-100 dark:border-slate-700">
+        <td class="px-4 py-3 whitespace-nowrap">{{ log.timestamp }}</td>
+        <td class="px-4 py-3">{{ log.user.username|default:"—" }}</td>
+        <td class="px-4 py-3">{{ log.get_action_display }}</td>
+        <td class="px-4 py-3">{{ log.description }}</td>
+        <td class="px-4 py-3">{{ log.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">No activity recorded yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

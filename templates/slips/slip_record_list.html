@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}Slip Records - NCAA{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Slip Records</h1>
+    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Track created slips and their examination details.</p>
+  </div>
+  <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
+    <span class="text-slate-500 dark:text-slate-400">Total slips</span>
+    <span class="ml-2 text-xl font-bold text-[#1A1B5D] dark:text-sky-300">{{ total_slips }}</span>
+  </div>
+</div>
+
+<div class="card mb-6">
+  <form method="get" class="grid gap-4 md:grid-cols-5">
+    <div class="md:col-span-2">
+      <label class="mb-1 block text-xs font-medium text-slate-500">Search</label>
+      <input type="search" name="q" value="{{ filters.q }}" class="form-input" placeholder="Name, exam #, receipt, company...">
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">From</label>
+      <input type="date" name="date_from" value="{{ filters.date_from }}" class="form-input">
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">To</label>
+      <input type="date" name="date_to" value="{{ filters.date_to }}" class="form-input">
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="btn-primary">Apply</button>
+      <a href="{% url 'slips:records' %}" class="btn-secondary">Clear</a>
+    </div>
+  </form>
+</div>
+
+<div class="card overflow-hidden p-0">
+  {% if slip_records %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+      <thead class="bg-slate-50 dark:bg-slate-900">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold">Candidate</th>
+          <th class="px-4 py-3 text-left font-semibold">Exam #</th>
+          <th class="px-4 py-3 text-left font-semibold">Receipt</th>
+          <th class="px-4 py-3 text-left font-semibold">Type</th>
+          <th class="px-4 py-3 text-left font-semibold">Exam Date / Time</th>
+          <th class="px-4 py-3 text-left font-semibold">Company</th>
+          <th class="px-4 py-3 text-left font-semibold">Created</th>
+          <th class="px-4 py-3 text-right font-semibold">PDFs</th>
+          <th class="px-4 py-3 text-right font-semibold">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+        {% for record in slip_records %}
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+          <td class="px-4 py-3 font-medium">{{ record.exam.candidate_name }}</td>
+          <td class="px-4 py-3">{{ record.exam.exam_number }}</td>
+          <td class="px-4 py-3">{{ record.exam.receipt_number }}</td>
+          <td class="px-4 py-3">{{ record.exam.get_exam_type_display }}</td>
+          <td class="px-4 py-3">{{ record.exam.exam_date }} · {{ record.exam.exam_time }}</td>
+          <td class="px-4 py-3">{{ record.exam.company_name }}</td>
+          <td class="px-4 py-3">{{ record.created_at|date:"d M Y, H:i" }}</td>
+          <td class="px-4 py-3 text-right">{{ record.pdf_download_count }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{% url 'slips:detail' record.exam.pk %}" class="text-sky-600 hover:underline">View</a>
+            <span class="text-slate-300">|</span>
+            <a href="{% url 'slips:pdf' record.exam.pk %}" class="text-sky-600 hover:underline">PDF</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page_obj.has_other_pages %}
+  <div class="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+    <span class="text-sm text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    <div class="flex gap-2">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}" class="btn-secondary text-xs">Previous</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}" class="btn-secondary text-xs">Next</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="p-12 text-center">
+    <p class="text-lg font-medium text-slate-600 dark:text-slate-300">No slip records yet</p>
+    <p class="mt-2 text-sm text-slate-500">Preview or download a slip to create its tracking record.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

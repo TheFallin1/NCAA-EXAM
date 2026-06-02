@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Record — NCAA{% endblock %}
+{% block page_heading %}Delete Examination Record{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-lg card">
+  <p class="text-slate-600 dark:text-slate-300">Are you sure you want to delete the examination record for:</p>
+  <p class="mt-3 text-lg font-semibold">{{ object.candidate_name }} ({{ object.exam_number }})</p>
+  <form method="post" class="mt-6 flex gap-3" data-loading>
+    {% csrf_token %}
+    <button type="submit" class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-700">Yes, delete</button>
+    <a href="{% url 'exams:list' %}" class="btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

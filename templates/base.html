@@ -1,0 +1,46 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}NCAA Exam Scheduling{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class', theme: { extend: { colors: { ncaa: { navy: '#1A1B5D', sky: '#38BDF8', gray: '#DDE1E4' } } } } };
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-full bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100" x-data="themeToggle()" x-init="init()">
+  <div id="loading-overlay" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/30 backdrop-blur-sm flex">
+    <div class="h-12 w-12 animate-spin rounded-full border-4 border-sky-400 border-t-transparent"></div>
+  </div>
+
+  <div class="flex min-h-screen">
+    {% include 'partials/sidebar.html' %}
+    <div class="flex flex-1 flex-col lg:pl-64">
+      {% include 'partials/navbar.html' %}
+      <main class="flex-1 p-4 md:p-6 lg:p-8">
+        {% include 'partials/messages.html' %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <div x-data="confirmModal()" x-show="open" x-cloak class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-slate-800">
+      <h3 class="text-lg font-semibold">Confirm action</h3>
+      <p class="mt-2 text-sm text-slate-600 dark:text-slate-300" x-text="message"></p>
+      <div class="mt-6 flex justify-end gap-3">
+        <button type="button" class="btn-secondary" @click="open=false">Cancel</button>
+        <button type="button" class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white" @click="confirm()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

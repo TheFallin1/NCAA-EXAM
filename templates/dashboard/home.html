@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — NCAA{% endblock %}
+{% block page_heading %}Dashboard{% endblock %}
+{% block page_subheading %}Examination scheduling overview{% endblock %}
+
+{% block content %}
+<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="card border-l-4 border-l-[#1A1B5D]">
+    <p class="text-sm text-slate-500">Total Scheduled</p>
+    <p class="mt-1 text-3xl font-bold text-[#1A1B5D] dark:text-sky-300">{{ total }}</p>
+  </div>
+  <div class="card border-l-4 border-l-sky-500">
+    <p class="text-sm text-slate-500">Today's Exams</p>
+    <p class="mt-1 text-3xl font-bold">{{ today_count }}</p>
+  </div>
+  <div class="card border-l-4 border-l-emerald-500">
+    <p class="text-sm text-slate-500">Upcoming (7 days)</p>
+    <p class="mt-1 text-3xl font-bold">{{ upcoming_count }}</p>
+  </div>
+  <div class="card flex items-center justify-center">
+    <a href="{% url 'exams:schedule' %}" class="btn-primary w-full text-center">+ Schedule Exam</a>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 lg:grid-cols-3">
+  <div class="card lg:col-span-2">
+    <h2 class="mb-4 text-lg font-semibold">Examinations by Type</h2>
+    <canvas id="examTypeChart" height="120"></canvas>
+  </div>
+  <div class="card">
+    <h2 class="mb-4 text-lg font-semibold">Calendar — {{ calendar_month }}/{{ calendar_year }}</h2>
+    <div class="grid grid-cols-7 gap-1 text-center text-xs">
+      {% for day, count in calendar_events.items %}
+      <a href="{% url 'exams:list' %}?date_from={{ day }}&date_to={{ day }}" class="rounded bg-sky-100 py-2 font-medium text-sky-900 hover:bg-sky-200 dark:bg-sky-900/40 dark:text-sky-200" title="{{ count }} exam(s)">
+        {{ day|slice:"8:10" }}<span class="block text-[10px]">{{ count }}</span>
+      </a>
+      {% empty %}
+      <p class="col-span-7 py-8 text-sm text-slate-500">No exams this month</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="mt-6 card">
+  <div class="mb-4 flex items-center justify-between">
+    <h2 class="text-lg font-semibold">Recent Activity</h2>
+    <a href="{% url 'exams:list' %}" class="text-sm text-sky-600 hover:underline">View all</a>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead><tr class="border-b text-left text-slate-500"><th class="py-2">Candidate</th><th>Exam #</th><th>Type</th><th>Date</th><th></th></tr></thead>
+      <tbody>
+        {% for exam in recent %}
+        <tr class="border-b border-slate-100 dark:border-slate-700">
+          <td class="py-2 font-medium">{{ exam.candidate_name }}</td>
+          <td>{{ exam.exam_number }}</td>
+          <td>{{ exam.get_exam_type_display }}</td>
+          <td>{{ exam.exam_date }}</td>
+          <td><a href="{% url 'slips:detail' exam.pk %}" class="text-sky-600">Slip</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="py-8 text-center text-slate-500">No recent schedules</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const ctx = document.getElementById('examTypeChart');
+  if (ctx) {
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: {{ chart_labels_json|safe }},
+        datasets: [{
+          label: 'Scheduled',
+          data: {{ chart_data_json|safe }},
+          backgroundColor: '#1A1B5D',
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  }
+</script>
+{% endblock %}

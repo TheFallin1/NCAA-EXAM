@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Schedule{% endif %} Exam — NCAA{% endblock %}
+{% block page_heading %}{% if is_edit %}Edit Examination{% else %}Schedule Examination{% endif %}{% endblock %}
+{% block page_subheading %}Enter candidate details for scheduling{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" class="space-y-5" data-loading>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="grid gap-5 md:grid-cols-2">
+        <div class="md:col-span-2">
+          <label class="mb-1 block text-sm font-medium">Candidate Name *</label>
+          {{ form.candidate_name }}
+          {% if form.candidate_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.candidate_name.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Exam Number *</label>
+          {{ form.exam_number }}
+          {% if form.exam_number.errors %}<p class="mt-1 text-xs text-red-600">{{ form.exam_number.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Receipt Number *</label>
+          {{ form.receipt_number }}
+          {% if form.receipt_number.errors %}<p class="mt-1 text-xs text-red-600">{{ form.receipt_number.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="md:col-span-2">
+          <label class="mb-1 block text-sm font-medium">Company Name *</label>
+          {{ form.company_name }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Exam Type *</label>
+          {{ form.exam_type }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Venue *</label>
+          {{ form.venue }}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Exam Date *</label>
+          {{ form.exam_date }}
+          {% if form.exam_date.errors %}<p class="mt-1 text-xs text-red-600">{{ form.exam_date.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Exam Time *</label>
+          {{ form.exam_time }}
+        </div>
+        <div class="md:col-span-2">
+          <label class="mb-1 block text-sm font-medium">Passport Photograph (optional)</label>
+          {{ form.photo }}
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+        <button type="submit" class="btn-primary">{% if is_edit %}Update & View Slip{% else %}Schedule & Generate Slip{% endif %}</button>
+        <a href="{% url 'exams:list' %}" class="btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
