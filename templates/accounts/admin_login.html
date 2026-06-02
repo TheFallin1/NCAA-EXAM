@@ -7,7 +7,7 @@
 <div class="flex min-h-screen items-center justify-center bg-slate-100 p-4">
   <div class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-xl">
     <div class="mb-8 text-center">
-      <img src="{% static NCAA_LOGO_URL %}" alt="NCAA" class="mx-auto h-24 w-24 rounded-full object-contain shadow-md">
+      <img src="{% static NCAA_LOGO_URL %}" alt="NCAA" class="mx-auto h-24 w-24 rounded-full bg-white object-contain shadow-md" onerror="this.style.visibility='hidden'">
       <h1 class="mt-4 text-xl font-bold text-[#1A1B5D]">System Administration</h1>
       <p class="mt-1 text-sm text-slate-500">Administrator sign in</p>
     </div>
@@ -19,13 +19,13 @@
       {% endif %}
       <div>
         <label class="mb-1 block text-sm font-medium text-slate-700">Admin Username</label>
-        <input type="text" name="username" required autofocus class="form-input" placeholder="System admin username">
+        <input type="text" name="username" required autofocus class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" placeholder="System admin username">
       </div>
       <div>
         <label class="mb-1 block text-sm font-medium text-slate-700">Password</label>
-        <input type="password" name="password" required class="form-input" placeholder="Password">
+        <input type="password" name="password" required class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" placeholder="Password">
       </div>
-      <button type="submit" class="btn-primary w-full">Sign in to Admin Portal</button>
+      <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-[#1A1B5D] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#252675] focus:outline-none focus:ring-4 focus:ring-sky-100">Sign in to Admin Portal</button>
     </form>
 
     <div class="mt-6 flex items-center justify-between text-xs">

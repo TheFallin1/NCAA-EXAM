@@ -1,14 +1,14 @@
 {% extends 'base_public.html' %}
 {% load static %}
 
-{% block title %}Login — NCAA Exam Scheduling{% endblock %}
+{% block title %}Login - NCAA Exam Scheduling{% endblock %}
 
 {% block content %}
 <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#1A1B5D] via-[#252675] to-sky-900 p-4">
-  <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl dark:bg-slate-800">
+  <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
     <div class="mb-8 text-center">
-      <img src="{% static NCAA_LOGO_URL %}" alt="NCAA" class="mx-auto h-28 w-28 rounded-full object-contain shadow-md">
-      <h1 class="mt-4 text-xl font-bold text-[#1A1B5D] dark:text-white">{{ NCAA_FULL_NAME }}</h1>
+      <img src="{% static NCAA_LOGO_URL %}" alt="NCAA" class="mx-auto h-28 w-28 rounded-full bg-white object-contain shadow-md" onerror="this.style.visibility='hidden'">
+      <h1 class="mt-4 text-xl font-bold text-[#1A1B5D]">{{ NCAA_FULL_NAME }}</h1>
       <p class="mt-1 text-sm text-slate-500">Aviation Examination Scheduling System</p>
     </div>
     <form method="post" class="space-y-4" data-loading>
@@ -17,14 +17,14 @@
       <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
       {% endif %}
       <div>
-        <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Username</label>
-        <input type="text" name="username" required autofocus class="form-input" placeholder="Officer username">
+        <label class="mb-1 block text-sm font-medium text-slate-700">Username</label>
+        <input type="text" name="username" required autofocus class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" placeholder="Officer username">
       </div>
       <div>
-        <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-        <input type="password" name="password" required class="form-input" placeholder="••••••••">
+        <label class="mb-1 block text-sm font-medium text-slate-700">Password</label>
+        <input type="password" name="password" required class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100" placeholder="Password">
       </div>
-      <button type="submit" class="btn-primary w-full">Sign in</button>
+      <button type="submit" class="inline-flex w-full items-center justify-center rounded-lg bg-[#1A1B5D] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#252675] focus:outline-none focus:ring-4 focus:ring-sky-100">Sign in</button>
     </form>
     <p class="mt-6 text-center text-xs text-slate-400">Authorized examination officers only</p>
   </div>
