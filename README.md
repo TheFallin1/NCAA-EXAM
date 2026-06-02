@@ -109,7 +109,8 @@ PDF generation requires GTK on Windows. Options:
    - `SECRET_KEY`
    - `DEBUG=False`
    - `DATABASE_URL` (Supabase)
-   - `ALLOWED_HOSTS=your-app.onrender.com`
+   - `ALLOWED_HOSTS=.onrender.com`
+   - `CSRF_TRUSTED_ORIGINS=https://*.onrender.com`
 
 ## Management commands
 

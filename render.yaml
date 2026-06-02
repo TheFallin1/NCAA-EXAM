@@ -15,3 +15,5 @@ services:
         sync: false
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://*.onrender.com"
