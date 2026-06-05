@@ -94,3 +94,31 @@ body {
 }
 
 .print-only { display: none; }
+
+[x-cloak] {
+  display: none !important;
+}
+
+/* Fallback styling for password reset inputs */
+#id_new_password1, #id_new_password2 {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #0f172a;
+  margin-top: 0.25rem;
+}
+
+#id_new_password1:focus, #id_new_password2:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.dark #id_new_password1, .dark #id_new_password2 {
+  border-color: #475569;
+  background: #1e293b;
+  color: #f1f5f9;
+}

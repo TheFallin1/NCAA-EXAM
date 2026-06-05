@@ -1,16 +1,14 @@
 {% extends 'base.html' %}
 
-{% block title %}Slip Records - NCAA{% endblock %}
+{% block title %}Slip Records — NCAA{% endblock %}
+{% block page_heading %}Slip Records{% endblock %}
+{% block page_subheading %}Track created slips and their examination details{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-  <div>
-    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Slip Records</h1>
-    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Track created slips and their examination details.</p>
-  </div>
-  <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
+<div class="mb-6 flex justify-end">
+  <div class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm dark:border-slate-700 dark:bg-slate-800">
     <span class="text-slate-500 dark:text-slate-400">Total slips</span>
-    <span class="ml-2 text-xl font-bold text-[#1A1B5D] dark:text-sky-300">{{ total_slips }}</span>
+    <span class="ml-2 text-lg font-bold text-[#1A1B5D] dark:text-sky-300 sm:text-xl">{{ total_slips }}</span>
   </div>
 </div>
 

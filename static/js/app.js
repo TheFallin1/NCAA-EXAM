@@ -1,6 +1,7 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('themeToggle', () => ({
     dark: localStorage.getItem('theme') === 'dark',
+    sidebarOpen: false,
     init() {
       this.apply();
     },

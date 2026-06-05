@@ -21,16 +21,25 @@
       <p class="text-xs text-slate-500">Aviation Examination Scheduling System</p>
     </div>
     <div class="my-4 rounded bg-[#1A1B5D] py-2 text-center text-sm font-bold text-white">EXAMINATION SLIP</div>
-    <dl class="space-y-2 text-sm">
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd>{{ exam.candidate_name }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd>{{ exam.exam_number }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd>{{ exam.receipt_number }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd>{{ exam.company_name }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd>{{ exam.get_exam_type_display }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd>{{ exam.exam_date }}</dd></div>
-      <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd>{{ exam.exam_time }}</dd></div>
-      <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd>{{ exam.venue }}</dd></div>
-    </dl>
+    
+    <div class="flex flex-col-reverse gap-4 sm:flex-row sm:justify-between">
+      <dl class="flex-1 space-y-2 text-sm">
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd class="w-3/5 font-medium text-slate-900 dark:text-slate-900">{{ exam.candidate_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_number }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.receipt_number }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.company_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.get_exam_type_display }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_date }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_time }}</dd></div>
+        <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.venue }}</dd></div>
+      </dl>
+      {% if exam.photo %}
+      <div class="flex justify-center sm:block sm:pt-2">
+        <img src="{{ exam.photo.url }}" alt="Candidate photo" class="h-28 w-28 rounded-lg border border-slate-200 object-cover shadow-sm">
+      </div>
+      {% endif %}
+    </div>
+
     <div class="mt-4 flex items-end justify-between border-t pt-4">
       <div class="text-xs text-slate-500">
         <p>Generated: {{ generated_at|date:"d M Y, H:i" }}</p>
