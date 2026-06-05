@@ -14,6 +14,7 @@ document.addEventListener('alpine:init', () => {
       document.documentElement.classList.toggle('dark', this.dark);
       document.body.classList.toggle('dark', this.dark);
       document.body.classList.toggle('light', !this.dark);
+      window.dispatchEvent(new CustomEvent('theme-changed', { detail: { dark: this.dark } }));
     },
   }));
 

@@ -73,22 +73,59 @@
 <script>
   const ctx = document.getElementById('examTypeChart');
   if (ctx) {
-    new Chart(ctx, {
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const getBarColor = () => isDark() ? '#38BDF8' : '#1A1B5D';
+    const getGridColor = () => isDark() ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const getTextColor = () => isDark() ? '#94A3B8' : '#64748B';
+
+    const chart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: {{ chart_labels_json|safe }},
         datasets: [{
           label: 'Scheduled',
           data: {{ chart_data_json|safe }},
-          backgroundColor: '#1A1B5D',
+          backgroundColor: getBarColor(),
           borderRadius: 6,
         }],
       },
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+        scales: {
+          x: {
+            grid: {
+              color: getGridColor(),
+            },
+            ticks: {
+              color: getTextColor(),
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              color: getTextColor(),
+            },
+            grid: {
+              color: getGridColor(),
+            }
+          }
+        },
       },
+    });
+
+    window.addEventListener('theme-changed', () => {
+      chart.data.datasets[0].backgroundColor = getBarColor();
+      if (chart.options.scales.x) {
+        chart.options.scales.x.grid.color = getGridColor();
+        chart.options.scales.x.ticks.color = getTextColor();
+      }
+      if (chart.options.scales.y) {
+        chart.options.scales.y.grid.color = getGridColor();
+        chart.options.scales.y.ticks.color = getTextColor();
+      }
+      chart.update();
     });
   }
 </script>
