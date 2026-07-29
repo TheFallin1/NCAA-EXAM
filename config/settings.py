@@ -25,8 +25,15 @@ if render_external_hostname and render_external_hostname not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(render_external_hostname)
 
 vercel_url = env('VERCEL_URL', default='')
-if vercel_url and vercel_url not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(vercel_url)
+vercel_project_url = env('VERCEL_PROJECT_PRODUCTION_URL', default='')
+if vercel_url:
+    if vercel_url not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(vercel_url)
+    # Vercel deployments can be accessed via multiple subdomains
+    if '.vercel.app' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append('.vercel.app')
+if vercel_project_url and vercel_project_url not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(vercel_project_url)
 
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 if render_external_hostname:
@@ -37,6 +44,14 @@ if vercel_url:
     vercel_origin = f'https://{vercel_url}'
     if vercel_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(vercel_origin)
+    # Trust all Vercel subdomains for CSRF
+    vercel_wildcard = 'https://*.vercel.app'
+    if vercel_wildcard not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(vercel_wildcard)
+if vercel_project_url:
+    project_origin = f'https://{vercel_project_url}'
+    if project_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(project_origin)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
