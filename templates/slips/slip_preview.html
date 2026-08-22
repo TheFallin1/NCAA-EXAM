@@ -29,9 +29,11 @@
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.receipt_number }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.company_name }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.get_exam_type_display }}</dd></div>
-        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_date }}</dd></div>
-        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_time }}</dd></div>
-        <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.venue }}</dd></div>
+        {% if not exam.has_papers %}
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_date|default:"To be advised" }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_time|default:"To be advised" }}</dd></div>
+        <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.venue|default:"To be advised" }}</dd></div>
+        {% endif %}
       </dl>
       {% if exam.photo %}
       <div class="flex justify-center sm:block sm:pt-2">
@@ -39,6 +41,21 @@
       </div>
       {% endif %}
     </div>
+
+    {% if exam.has_papers %}
+    <div class="mt-4 space-y-3">
+      {% for paper in exam.papers.all %}
+      <div class="rounded-lg border border-slate-200 border-l-4 border-l-[#1A1B5D] p-3">
+        <p class="text-sm font-bold text-[#1A1B5D]">{{ paper.get_paper_display }}</p>
+        <dl class="mt-2 space-y-1 text-sm">
+          <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ paper.exam_date|default:"To be advised" }}</dd></div>
+          <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ paper.exam_time|default:"To be advised" }}</dd></div>
+          <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ paper.venue|default:"To be advised" }}</dd></div>
+        </dl>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="mt-4 flex items-end justify-between border-t pt-4">
       <div class="text-xs text-slate-500">

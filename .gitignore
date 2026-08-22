@@ -11,3 +11,5 @@ media/passports/
 .DS_Store
 .idea/
 .vscode/
+private_media/
+demo_documents/

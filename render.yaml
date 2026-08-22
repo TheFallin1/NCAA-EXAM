@@ -1,19 +1,65 @@
+# Render deployment.
+#
+# This is a Docker service, not a native Python service, because OCR needs the
+# Tesseract binary installed with apt. Render's native runtimes build without
+# root and cannot install system packages, so a native deploy would start fine
+# and then fail on every application with "Tesseract is not installed".
+
 services:
   - type: web
     name: ncaa-exam-system
-    runtime: python
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /accounts/login/
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.0"
-      - key: DEBUG
-        value: "False"
       - key: SECRET_KEY
         generateValue: true
+      - key: DEBUG
+        value: "False"
       - key: DATABASE_URL
         sync: false
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://*.onrender.com"
+
+      # OCR. The paths match where the Dockerfile installs things.
+      - key: OCR_ENGINE
+        value: "tesseract"
+      - key: OCR_ENGINE_PATH
+        value: "/usr/bin/tesseract"
+      - key: OCR_LANGUAGES
+        value: "eng"
+      - key: OCR_DPI
+        value: "300"
+      - key: OCR_CONFIDENCE_THRESHOLD
+        value: "80"
+
+      # Scanned documents. See the disk note below.
+      - key: PRIVATE_MEDIA_ROOT
+        value: "/var/lib/ncaa-exams/private_media"
+      - key: MAX_UPLOAD_SIZE
+        value: "10485760"
+
+      # NCAA sits Flight Dispatch Paper 1 and Paper 2 on different days.
+      - key: FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT
+        value: "False"
+
+      # First administrator, created on start-up. Set these in the Render
+      # dashboard; do not commit them.
+      - key: DEPLOYMENT_ADMIN_USERNAME
+        sync: false
+      - key: DEPLOYMENT_ADMIN_PASSWORD
+        sync: false
+
+    # IMPORTANT: without a persistent disk, uploaded letters and receipts are
+    # lost whenever the instance restarts or redeploys (and free instances spin
+    # down when idle). The database rows survive, but the "view document" links
+    # stop resolving.
+    #
+    # Persistent disks need a paid instance type. Uncomment to enable:
+    #
+    # disk:
+    #   name: ncaa-documents
+    #   mountPath: /var/lib/ncaa-exams/private_media
+    #   sizeGB: 5

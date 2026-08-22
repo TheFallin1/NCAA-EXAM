@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}Applications — NCAA{% endblock %}
+{% block page_heading %}Applications{% endblock %}
+{% block page_subheading %}Applications being processed{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="card">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <form method="get" class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-500">Reference</label>
+          <input type="text" name="q" value="{{ filters.q }}" placeholder="APP-2026-00001"
+                 class="form-input" autocomplete="off">
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-slate-500">Status</label>
+          <select name="status" class="form-input">
+            <option value="">All statuses</option>
+            {% for value, label in statuses %}
+            <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn-secondary">Filter</button>
+      </form>
+      <a href="{% url 'applications:process' %}" class="btn-primary">+ Process Application</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="border-b text-left text-slate-500">
+            <th class="py-2">Reference</th>
+            <th class="py-2">Exam Type</th>
+            <th class="py-2">Receipt</th>
+            <th class="py-2">Candidates</th>
+            <th class="py-2">Status</th>
+            <th class="py-2">Officer</th>
+            <th class="py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for application in applications %}
+          <tr class="border-b border-slate-100 dark:border-slate-700">
+            <td class="py-2 font-medium">{{ application.reference }}</td>
+            <td class="py-2">{{ application.exam_type_label }}</td>
+            <td class="py-2 font-mono text-xs">{{ application.receipt_number|default:"—" }}</td>
+            <td class="py-2">{{ application.extracted_candidates.count }}</td>
+            <td class="py-2">
+              {% if application.processing_status == 'mismatch' %}
+              <span class="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">{{ application.get_processing_status_display }}</span>
+              {% elif application.processing_status == 'failed' %}
+              <span class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">{{ application.get_processing_status_display }}</span>
+              {% elif application.processing_status == 'scheduled' %}
+              <span class="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800">{{ application.get_processing_status_display }}</span>
+              {% else %}
+              <span class="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ application.get_processing_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="py-2 text-slate-500">{{ application.created_by.username }}</td>
+            <td class="py-2 text-right">
+              {% if application.processing_status == 'scheduled' %}
+              <a href="{% url 'slips:application_batch' application.pk %}" class="text-sky-600 hover:underline">Slips</a>
+              {% elif application.processing_status == 'confirmed' %}
+              <a href="{% url 'applications:schedule' application.pk %}" class="text-sky-600 hover:underline">Schedule</a>
+              {% else %}
+              <a href="{% url 'applications:review' application.pk %}" class="text-sky-600 hover:underline">Open</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="py-8 text-center text-slate-500">No applications yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="mt-4 flex items-center justify-between border-t border-slate-200 pt-4 text-sm dark:border-slate-700">
+      <span class="text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <div class="flex gap-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&status={{ filters.status }}" class="btn-secondary">Previous</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&status={{ filters.status }}" class="btn-secondary">Next</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

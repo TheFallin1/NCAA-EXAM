@@ -5,12 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}NCAA Exam Scheduling{% endblock %}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="{% static 'vendor/tailwind.3.4.16.min.js' %}"></script>
   <script>
     tailwind.config = { darkMode: 'class', theme: { extend: { colors: { ncaa: { navy: '#1A1B5D', sky: '#38BDF8', gray: '#DDE1E4' } } } } };
   </script>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <script defer src="{% static 'vendor/alpine.3.14.1.min.js' %}"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="min-h-full bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100" x-data="themeToggle()" x-init="init()">

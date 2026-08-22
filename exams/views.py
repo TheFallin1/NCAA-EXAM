@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import F, Q
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -62,7 +62,15 @@ class ExamListView(OfficerRequiredMixin, ListView):
             'created_at': 'created_at',
             '-created_at': '-created_at',
         }
-        qs = qs.order_by(allowed_sorts.get(sort, '-exam_date'), '-exam_time')
+        field = allowed_sorts.get(sort, '-exam_date')
+        if field.lstrip('-') == 'exam_date':
+            # Records confirmed but not yet scheduled have no date. Order them
+            # explicitly so SQLite and PostgreSQL agree on where NULLs land.
+            descending = field.startswith('-')
+            expression = F('exam_date').desc(nulls_last=True) if descending else F('exam_date').asc(nulls_first=True)
+            qs = qs.order_by(expression, '-exam_time')
+        else:
+            qs = qs.order_by(field, '-exam_time')
         return qs
 
     def get_context_data(self, **kwargs):
@@ -104,8 +112,10 @@ class ExamDeleteView(OfficerRequiredMixin, DeleteView):
     template_name = 'exams/exam_confirm_delete.html'
     success_url = reverse_lazy('exams:list')
 
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        self.object._request = request
-        messages.success(request, 'Examination record deleted.')
-        return super().delete(request, *args, **kwargs)
+    def form_valid(self, form):
+        # Since Django 4.0 DeleteView is form-based and POST routes through
+        # form_valid, not delete(). Attaching the request here is what lets the
+        # audit trail record who removed the record and from where.
+        self.object._request = self.request
+        messages.success(self.request, 'Examination record deleted.')
+        return super().form_valid(form)

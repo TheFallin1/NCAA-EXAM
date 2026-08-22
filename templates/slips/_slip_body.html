@@ -1,0 +1,47 @@
+{% load static %}
+  <div class="slip">
+    <div class="header">
+      <img src="{% if logo_path %}{{ logo_path }}{% else %}{% static 'images/ncaa_logo.png' %}{% endif %}" alt="NCAA">
+      <h1>{{ ncaa_full_name }}</h1>
+      <p>Aviation Examination Scheduling System</p>
+    </div>
+    <div class="title">EXAMINATION SLIP</div>
+    {% if exam.photo %}
+    <img src="{{ exam.photo.url }}" class="photo" alt="Candidate photo">
+    {% endif %}
+    <div class="grid">
+      <div class="row"><span class="label">Candidate Name</span><span class="value">{{ exam.candidate_name }}</span></div>
+      <div class="row"><span class="label">Exam Number</span><span class="value">{{ exam.exam_number }}</span></div>
+      <div class="row"><span class="label">Receipt Number</span><span class="value">{{ exam.receipt_number }}</span></div>
+      <div class="row"><span class="label">Company</span><span class="value">{{ exam.company_name }}</span></div>
+      <div class="row"><span class="label">Exam Type</span><span class="value">{{ exam.get_exam_type_display }}</span></div>
+{% if not exam.has_papers %}
+      <div class="row"><span class="label">Exam Date</span><span class="value">{{ exam.exam_date|date:"l, d F Y"|default:"To be advised" }}</span></div>
+      <div class="row"><span class="label">Exam Time</span><span class="value">{{ exam.exam_time|time:"H:i"|default:"To be advised" }}</span></div>
+      <div class="row"><span class="label">Venue</span><span class="value">{{ exam.venue|default:"To be advised" }}</span></div>
+{% endif %}
+    </div>
+{% if exam.has_papers %}
+    <div class="papers">
+      {% for paper in exam.papers.all %}
+      <div class="paper">
+        <div class="paper-title">{{ paper.get_paper_display }}</div>
+        <div class="grid">
+          <div class="row"><span class="label">Date</span><span class="value">{{ paper.exam_date|date:"l, d F Y"|default:"To be advised" }}</span></div>
+          <div class="row"><span class="label">Time</span><span class="value">{{ paper.exam_time|time:"H:i"|default:"To be advised" }}</span></div>
+          <div class="row"><span class="label">Venue</span><span class="value">{{ paper.venue|default:"To be advised" }}</span></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+{% endif %}
+    <div class="footer">
+      <div class="meta">
+        <p>Generated: {{ generated_at|date:"d M Y, H:i" }} WAT</p>
+        <p>Officer: {{ officer_username }}</p>
+      </div>
+      <div class="qr">
+        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code">
+      </div>
+    </div>
+  </div>

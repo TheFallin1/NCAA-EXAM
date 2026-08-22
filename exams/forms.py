@@ -59,6 +59,11 @@ class ExamScheduleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['exam_type'].choices = [('', 'Select exam type')] + list(ExamType.choices)
         self.fields['photo'].required = False
+        # The model allows a null schedule so a confirmed application can hold
+        # examination IDs before a date is set. This form schedules directly,
+        # so it still demands all three.
+        for name in ('exam_date', 'exam_time', 'venue'):
+            self.fields[name].required = True
 
     def clean_exam_number(self):
         exam_number = self.cleaned_data['exam_number'].strip().upper()

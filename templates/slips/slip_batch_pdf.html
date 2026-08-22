@@ -1,0 +1,21 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+{% include 'slips/_slip_styles.html' %}
+  <style>
+    .slip-page { page-break-after: always; }
+    .slip-page:last-child { page-break-after: auto; }
+  </style>
+</head>
+<body>
+{% for slip in slips %}
+  <div class="slip-page">
+    {% with exam=slip.exam qr_base64=slip.qr_base64 generated_at=slip.generated_at officer_username=slip.officer_username logo_path=slip.logo_path ncaa_full_name=slip.ncaa_full_name %}
+{% include 'slips/_slip_body.html' %}
+    {% endwith %}
+  </div>
+{% endfor %}
+</body>
+</html>

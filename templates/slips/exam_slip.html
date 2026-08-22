@@ -3,55 +3,9 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <style>
-    @page { size: A5 portrait; margin: 12mm; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1A1B5D; font-size: 11pt; margin: 0; }
-    .slip { border: 2px solid #1A1B5D; border-radius: 8px; padding: 16px; }
-    .header { text-align: center; border-bottom: 2px solid #38BDF8; padding-bottom: 12px; margin-bottom: 16px; }
-    .header img { height: 64px; }
-    .header h1 { font-size: 14pt; margin: 8px 0 4px; text-transform: uppercase; }
-    .header p { font-size: 9pt; color: #64748b; margin: 0; }
-    .title { text-align: center; background: #1A1B5D; color: white; padding: 8px; font-weight: bold; margin-bottom: 16px; border-radius: 4px; }
-    .grid { display: table; width: 100%; }
-    .row { display: table-row; }
-    .label { display: table-cell; width: 38%; padding: 6px 8px; font-weight: 600; color: #475569; font-size: 9pt; }
-    .value { display: table-cell; padding: 6px 8px; border-bottom: 1px solid #DDE1E4; }
-    .footer { margin-top: 16px; display: flex; justify-content: space-between; align-items: flex-end; }
-    .qr img { width: 100px; height: 100px; }
-    .meta { font-size: 8pt; color: #64748b; }
-    .photo { max-height: 80px; border-radius: 4px; float: right; margin-left: 12px; }
-  </style>
+{% include 'slips/_slip_styles.html' %}
 </head>
 <body>
-  <div class="slip">
-    <div class="header">
-      <img src="{% if logo_path %}{{ logo_path }}{% else %}{% static 'images/ncaa_logo.png' %}{% endif %}" alt="NCAA">
-      <h1>{{ ncaa_full_name }}</h1>
-      <p>Aviation Examination Scheduling System</p>
-    </div>
-    <div class="title">EXAMINATION SLIP</div>
-    {% if exam.photo %}
-    <img src="{{ exam.photo.url }}" class="photo" alt="Candidate photo">
-    {% endif %}
-    <div class="grid">
-      <div class="row"><span class="label">Candidate Name</span><span class="value">{{ exam.candidate_name }}</span></div>
-      <div class="row"><span class="label">Exam Number</span><span class="value">{{ exam.exam_number }}</span></div>
-      <div class="row"><span class="label">Receipt Number</span><span class="value">{{ exam.receipt_number }}</span></div>
-      <div class="row"><span class="label">Company</span><span class="value">{{ exam.company_name }}</span></div>
-      <div class="row"><span class="label">Exam Type</span><span class="value">{{ exam.get_exam_type_display }}</span></div>
-      <div class="row"><span class="label">Exam Date</span><span class="value">{{ exam.exam_date|date:"l, d F Y" }}</span></div>
-      <div class="row"><span class="label">Exam Time</span><span class="value">{{ exam.exam_time }}</span></div>
-      <div class="row"><span class="label">Venue</span><span class="value">{{ exam.venue }}</span></div>
-    </div>
-    <div class="footer">
-      <div class="meta">
-        <p>Generated: {{ generated_at|date:"d M Y, H:i" }} WAT</p>
-        <p>Officer: {{ officer_username }}</p>
-      </div>
-      <div class="qr">
-        <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code">
-      </div>
-    </div>
-  </div>
+{% include 'slips/_slip_body.html' %}
 </body>
 </html>

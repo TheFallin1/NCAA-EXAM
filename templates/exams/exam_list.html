@@ -64,8 +64,11 @@
           <td class="px-4 py-3 font-medium">{{ exam.candidate_name }}</td>
           <td class="px-4 py-3">{{ exam.exam_number }}</td>
           <td class="px-4 py-3">{{ exam.get_exam_type_display }}</td>
-          <td class="px-4 py-3">{{ exam.exam_date }} · {{ exam.exam_time }}</td>
-          <td class="px-4 py-3">{{ exam.venue }}</td>
+          <td class="px-4 py-3">
+            {% if exam.exam_date %}{{ exam.exam_date }} · {{ exam.exam_time }}
+            {% else %}<span class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Awaiting scheduling</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">{{ exam.venue|default:"—" }}</td>
           <td class="px-4 py-3 text-right">
             <a href="{% url 'slips:detail' exam.pk %}" class="text-sky-600 hover:underline">Slip</a>
             <span class="text-slate-300">|</span>

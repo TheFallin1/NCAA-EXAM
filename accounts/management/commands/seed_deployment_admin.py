@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand, CommandError
@@ -10,13 +12,13 @@ class Command(BaseCommand):
     help = 'Seed deployment admin account from environment variables.'
 
     def handle(self, *args, **options):
-        username = settings.env('DEPLOYMENT_ADMIN_USERNAME', default='')
-        password = settings.env('DEPLOYMENT_ADMIN_PASSWORD', default='')
-        email = settings.env('DEPLOYMENT_ADMIN_EMAIL', default='admin@ncaa.gov.ng')
-        first_name = settings.env('DEPLOYMENT_ADMIN_FIRST_NAME', default='System')
-        last_name = settings.env('DEPLOYMENT_ADMIN_LAST_NAME', default='Administrator')
-        employee_id = settings.env('DEPLOYMENT_ADMIN_EMPLOYEE_ID', default='NCAA-AD-DEPLOY')
-        phone = settings.env('DEPLOYMENT_ADMIN_PHONE', default='')
+        username = os.environ.get('DEPLOYMENT_ADMIN_USERNAME', '')
+        password = os.environ.get('DEPLOYMENT_ADMIN_PASSWORD', '')
+        email = os.environ.get('DEPLOYMENT_ADMIN_EMAIL', 'admin@ncaa.gov.ng')
+        first_name = os.environ.get('DEPLOYMENT_ADMIN_FIRST_NAME', 'System')
+        last_name = os.environ.get('DEPLOYMENT_ADMIN_LAST_NAME', 'Administrator')
+        employee_id = os.environ.get('DEPLOYMENT_ADMIN_EMPLOYEE_ID', 'NCAA-AD-DEPLOY')
+        phone = os.environ.get('DEPLOYMENT_ADMIN_PHONE', '')
 
         if not username or not password:
             raise CommandError(

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Slips for {{ application.reference }} — NCAA{% endblock %}
+{% block page_heading %}Examination Slips{% endblock %}
+{% block page_subheading %}{{ application.reference }} — {{ application.exam_type_label }}{% endblock %}
+
+{% block content %}
+<div class="no-print mb-6 flex flex-wrap gap-3">
+  <button onclick="window.print()" class="btn-primary">Print All Slips</button>
+  <a href="{% url 'slips:application_batch_pdf' application.pk %}" class="btn-secondary">Download All as PDF</a>
+  <a href="{% url 'applications:list' %}" class="btn-secondary">Back to Applications</a>
+  <a href="{% url 'applications:process' %}" class="btn-primary">Process Another</a>
+</div>
+
+<div class="no-print mb-6 card">
+  <h2 class="text-lg font-semibold">{{ slips|length }} slip(s) generated</h2>
+  <div class="mt-4 overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <thead>
+        <tr class="border-b text-left text-slate-500">
+          <th class="py-2">Candidate</th>
+          <th class="py-2">Examination ID</th>
+          <th class="py-2"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exam in exams %}
+        <tr class="border-b border-slate-100 dark:border-slate-700">
+          <td class="py-2 font-medium">{{ exam.candidate_name }}</td>
+          <td class="py-2 font-mono text-xs">{{ exam.exam_number }}</td>
+          <td class="py-2 text-right">
+            <a href="{% url 'slips:detail' exam.pk %}" class="text-sky-600 hover:underline">Open</a>
+            <a href="{% url 'slips:pdf' exam.pk %}" class="ml-3 text-sky-600 hover:underline">PDF</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="slip-print-area" class="space-y-8">
+  {% for slip in slips %}
+  <div class="slip-sheet mx-auto max-w-xl">
+    <div class="rounded-xl border-2 border-[#1A1B5D] bg-white p-6 shadow-lg print:shadow-none">
+      <div class="border-b-2 border-sky-400 pb-4 text-center">
+        <img src="{% static 'images/ncaa_logo.png' %}" alt="NCAA" class="mx-auto h-20 w-20 rounded-full object-contain">
+        <h2 class="mt-2 text-lg font-bold uppercase text-[#1A1B5D]">{{ slip.ncaa_full_name }}</h2>
+        <p class="text-xs text-slate-500">Aviation Examination Scheduling System</p>
+      </div>
+      <div class="my-4 rounded bg-[#1A1B5D] py-2 text-center text-sm font-bold text-white">
+        {% if slip.exam.has_papers %}{{ slip.exam.get_exam_type_display|upper }} EXAMINATION SLIP{% else %}EXAMINATION SLIP{% endif %}
+      </div>
+
+      <dl class="space-y-2 text-sm">
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd class="w-3/5 font-medium text-slate-900">{{ slip.exam.candidate_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_number }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.receipt_number }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.company_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.get_exam_type_display }}</dd></div>
+        {% if not slip.exam.has_papers %}
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_date|default:"To be advised" }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_time|default:"To be advised" }}</dd></div>
+        <div class="flex py-2"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.venue|default:"To be advised" }}</dd></div>
+        {% endif %}
+      </dl>
+
+      {% if slip.exam.has_papers %}
+      <div class="mt-4 space-y-3">
+        {% for paper in slip.exam.papers.all %}
+        <div class="rounded-lg border border-slate-200 border-l-4 border-l-[#1A1B5D] p-3">
+          <p class="text-sm font-bold text-[#1A1B5D]">{{ paper.get_paper_display }}</p>
+          <dl class="mt-2 space-y-1 text-sm">
+            <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900">{{ paper.exam_date|default:"To be advised" }}</dd></div>
+            <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900">{{ paper.exam_time|default:"To be advised" }}</dd></div>
+            <div class="flex"><dt class="w-2/5 font-semibold text-slate-500">Venue</dt><dd class="w-3/5 text-slate-900">{{ paper.venue|default:"To be advised" }}</dd></div>
+          </dl>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="mt-4 flex items-end justify-between border-t pt-4">
+        <div class="text-xs text-slate-500">
+          <p>Generated: {{ slip.generated_at|date:"d M Y, H:i" }}</p>
+          <p>Officer: {{ slip.officer_username }}</p>
+        </div>
+        <img src="data:image/png;base64,{{ slip.qr_base64 }}" alt="QR" class="h-24 w-24">
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+@media print {
+  body * { visibility: hidden; }
+  #slip-print-area, #slip-print-area * { visibility: visible; }
+  #slip-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+  .slip-sheet { page-break-after: always; max-width: none; }
+  .slip-sheet:last-child { page-break-after: auto; }
+}
+</style>
+{% endblock %}

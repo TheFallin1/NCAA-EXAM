@@ -27,8 +27,11 @@ class SlipRecord(models.Model):
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['-created_at']),
-            models.Index(fields=['pdf_generated_at']),
+            # Names pinned to those created by migration 0001. Django's
+            # auto-generated hash drifted between point releases, and
+            # renaming indexes on the live table buys nothing.
+            models.Index(fields=['-created_at'], name='slips_slipr_created_8a9b15_idx'),
+            models.Index(fields=['pdf_generated_at'], name='slips_slipr_pdf_gen_7a6c42_idx'),
         ]
         verbose_name = 'Slip Record'
         verbose_name_plural = 'Slip Records'
