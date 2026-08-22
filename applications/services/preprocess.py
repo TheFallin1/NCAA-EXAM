@@ -175,14 +175,23 @@ def _rotate(image, degrees):
 
 
 def _probe(image):
-    """A small copy used only to compare orientations, so this stays cheap."""
+    """A small greyscale copy used only to compare variants.
+
+    Probes are scored, never read for content, so they are made as cheap as
+    possible: a page is compared against itself many times during preparation
+    and each full-size pass would cost a second or more.
+    """
+    from PIL import ImageOps
+
     edge = settings.OCR_ORIENTATION_PROBE_EDGE
     longest = max(image.width, image.height)
-    if longest <= edge:
-        return image
-    factor = edge / longest
-    size = (max(1, int(image.width * factor)), max(1, int(image.height * factor)))
-    return image.resize(size, _resample())
+    if longest > edge:
+        factor = edge / longest
+        image = image.resize(
+            (max(1, int(image.width * factor)), max(1, int(image.height * factor))),
+            _resample(),
+        )
+    return ImageOps.grayscale(image)
 
 
 def score_readability(data):
@@ -285,6 +294,37 @@ def estimate_skew(image, engine):
     return median
 
 
+def _deskew(image, degrees):
+    """Straighten a page without changing the size of the canvas.
+
+    `expand=True` is deliberately avoided. Growing the canvas moves the page
+    geometry, and page segmentation is sensitive enough to that shift to start
+    treating a different block as the body of the page -- on a photograph that
+    caught a second sheet at another angle, it reads the wrong document
+    entirely. A correction of a few degrees about the centre keeps every line
+    within the frame regardless.
+    """
+    from PIL import Image
+
+    # rotate() accepts only NEAREST/BILINEAR/BICUBIC; LANCZOS is resize-only.
+    resample = getattr(Image, 'Resampling', Image).BICUBIC
+    return image.rotate(degrees, expand=False, resample=resample, fillcolor='white')
+
+
+def _improves(candidate, current, engine):
+    """True when a prepared variant reads better than what it replaces.
+
+    Every correction is checked rather than trusted. Recognition is not
+    monotonic in image quality: a step that helps one page can wreck another,
+    and a silent regression here surfaces much later as a missing candidate or
+    an undetected examination type.
+    """
+    return (
+        score_readability(engine.raw_data(_probe(candidate)))
+        > score_readability(engine.raw_data(_probe(current)))
+    )
+
+
 def prepare(image, engine):
     """Return (prepared image, Orientation) ready for recognition."""
     result = Orientation()
@@ -292,6 +332,9 @@ def prepare(image, engine):
     if settings.OCR_CROP_TO_PAGE:
         region = detect_paper_region(image)
         if region:
+            # Not readability-checked: the decision is geometric, and a
+            # sideways page reads as nothing at every stage, so a comparison
+            # here would reject exactly the crop such a page depends on.
             image = image.crop(region)
             result.cropped = True
 
@@ -311,15 +354,18 @@ def prepare(image, engine):
     if settings.OCR_DESKEW:
         skew = estimate_skew(_probe(prepared), engine)
         if abs(skew) >= settings.OCR_MIN_SKEW:
-            from PIL import Image
-
-            # rotate() accepts only NEAREST/BILINEAR/BICUBIC; LANCZOS is a
-            # resize-only filter. Bicubic keeps glyph edges clean enough.
-            resample = getattr(Image, 'Resampling', Image).BICUBIC
-            prepared = prepared.rotate(
-                skew, expand=True, resample=resample, fillcolor='white'
-            )
-            result.skew = skew
+            straightened = _deskew(prepared, skew)
+            # Straightening is kept only if it genuinely reads better. A page
+            # can carry a second sheet, a stamp or marginalia at another
+            # angle, which drags the measured skew away from the body text;
+            # applying that would tilt a page that was already straight.
+            if _improves(straightened, prepared, engine):
+                prepared = straightened
+                result.skew = skew
+            else:
+                logger.debug(
+                    'Discarded a %.1f degree skew correction that read worse', skew
+                )
 
     if result.corrected:
         logger.info('Page prepared: %s', result.describe())
