@@ -7,6 +7,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('exams/', include('exams.urls')),
+    path('applications/', include('applications.urls')),
     path('slips/', include('slips.urls')),
     path('system/', include('dashboard.admin_urls', namespace='system')),
     path('api/v1/', include('dashboard.api_urls')),

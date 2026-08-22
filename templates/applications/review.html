@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}Review {{ application.reference }} — NCAA{% endblock %}
+{% block page_heading %}Application Processing Review{% endblock %}
+{% block page_subheading %}{{ application.reference }} — {{ application.exam_type_label }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl space-y-6">
+
+  {# ---------- OCR still running ---------- #}
+  {% if application.is_processing %}
+  <div class="card text-center" x-data="{ poll: null }" x-init="
+        poll = setInterval(function () {
+          fetch('{{ status_url }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (!d.is_processing) { clearInterval(poll); window.location.reload(); } });
+        }, 2000)">
+    <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-sky-400 border-t-transparent"></div>
+    <h2 class="mt-4 text-lg font-semibold">Reading the documents</h2>
+    <p class="mt-1 text-sm text-slate-500">
+      The application letter and payment receipt are being processed. This page updates automatically.
+    </p>
+  </div>
+  {% endif %}
+
+  {# ---------- Examination type mismatch: processing is blocked ---------- #}
+  {% if application.processing_status == 'mismatch' %}
+  <div class="card border-l-4 border-l-red-600">
+    <h2 class="text-lg font-bold text-red-700">Examination Type Mismatch</h2>
+    <dl class="mt-4 space-y-2 text-sm">
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Selected by Officer</dt>
+        <dd class="font-medium">{{ application.exam_type_label }}</dd>
+      </div>
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Detected from Application</dt>
+        <dd class="font-medium">{{ application.detected_exam_type_label|default:"Not detected" }}</dd>
+      </div>
+      {% if application.detected_exam_type_evidence %}
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Text found in letter</dt>
+        <dd class="italic text-slate-600 dark:text-slate-300">&ldquo;{{ application.detected_exam_type_evidence }}&rdquo;</dd>
+      </div>
+      {% endif %}
+    </dl>
+    <p class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+      {% if application.error_message %}{{ application.error_message }}{% else %}
+      The application cannot be processed until the examination type is verified and corrected.
+      {% endif %}
+    </p>
+    <p class="mt-3 text-xs text-slate-500">
+      Check that the correct letter was scanned and that the right examination type was selected,
+      then start the application again with the correct details.
+    </p>
+    <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+      <a href="{% url 'applications:process' %}" class="btn-primary">Start Again</a>
+      <form method="post" action="{% url 'applications:retry' application.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary">Re-read Documents</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- OCR failed / nothing readable ---------- #}
+  {% if application.processing_status == 'failed' %}
+  <div class="card border-l-4 border-l-amber-500">
+    <h2 class="text-lg font-bold text-amber-700">Processing could not be completed</h2>
+    <p class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{{ application.error_message }}</p>
+    <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+      <form method="post" action="{% url 'applications:retry' application.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">Try Again</button>
+      </form>
+      <a href="{% url 'applications:process' %}" class="btn-secondary">Start a New Application</a>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- Verification ---------- #}
+  {% if application.processing_status == 'review' %}
+  <form method="post" class="space-y-6" data-loading>
+    {% csrf_token %}
+    {{ formset.management_form }}
+
+    <div class="card">
+      <h2 class="text-lg font-semibold">Application Information</h2>
+      <div class="mt-4">
+        <label class="mb-1 block text-sm font-medium">{{ review_form.company_name.label }}</label>
+        {{ review_form.company_name }}
+        <p class="mt-1 text-xs text-slate-500">Read from the letterhead. Correct it if the wrong organisation was picked up.</p>
+      </div>
+      <div class="mt-5 grid gap-4 sm:grid-cols-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Officer Selected</p>
+          <p class="mt-1 font-medium">{{ application.exam_type_label }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">OCR Detected</p>
+          <p class="mt-1 font-medium">{{ application.detected_exam_type_label }}</p>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+          <p class="mt-1 font-semibold text-emerald-600">&check; Match</p>
+        </div>
+      </div>
+      {% if application.detected_exam_type_ambiguous %}
+      <p class="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+        The letter mentions more than one examination category. The type above matches your
+        selection, but please confirm the letter is for {{ application.exam_type_label }} before continuing.
+      </p>
+      {% endif %}
+      {% if application.has_papers %}
+      <p class="mt-4 rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
+        Flight Dispatch consists of Paper 1 and Paper 2. You will set the schedule for each paper
+        in the next step.
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 class="text-lg font-semibold">Candidates Detected</h2>
+        <p class="text-sm text-slate-500">{{ application.extracted_candidates.count }} name(s) read from the letter</p>
+      </div>
+      {% if formset.non_form_errors %}
+      <div class="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ formset.non_form_errors }}</div>
+      {% endif %}
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b text-left text-slate-500">
+              <th class="w-10 py-2">#</th>
+              <th class="py-2">Candidate Name</th>
+              <th class="w-28 py-2">Confidence</th>
+              <th class="w-44 py-2">Status</th>
+              <th class="w-20 py-2">Include</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in formset %}
+            <tr class="border-b border-slate-100 align-top dark:border-slate-700">
+              <td class="py-3 text-slate-500">
+                {{ form.id }}
+                {% if form.is_new_row %}+{% else %}{{ form.instance.position }}{% endif %}
+              </td>
+              <td class="py-3">
+                {{ form.corrected_name }}
+                {% if form.corrected_name.errors %}<p class="mt-1 text-xs text-red-600">{{ form.corrected_name.errors.0 }}</p>{% endif %}
+                {% if form.non_field_errors %}<p class="mt-1 text-xs text-red-600">{{ form.non_field_errors.0 }}</p>{% endif %}
+                {% if not form.is_new_row and form.instance.raw_name %}
+                <p class="mt-1 text-xs text-slate-400">OCR read: {{ form.instance.raw_name }}</p>
+                {% endif %}
+              </td>
+              <td class="py-3 text-slate-600 dark:text-slate-300">
+                {% if form.is_new_row %}&mdash;{% else %}{{ form.instance.confidence_display }}{% endif %}
+              </td>
+              <td class="py-3">
+                {% if form.is_new_row %}
+                <span class="text-xs text-slate-400">New entry</span>
+                {% elif form.instance.needs_review %}
+                <span class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">&#9888; Review</span>
+                {% else %}
+                <span class="text-emerald-600">&check;</span>
+                {% endif %}
+                {% if form.instance.possible_duplicate_of_id %}
+                <p class="mt-1 text-xs text-amber-700">
+                  Possible duplicate of {{ form.instance.possible_duplicate_of.exam_number }}
+                </p>
+                {% endif %}
+              </td>
+              <td class="py-3">{{ form.is_included }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-3 text-xs text-slate-500">
+        Correct any misread name directly in the box. Clear the &ldquo;include&rdquo; box to leave a
+        row out, or use the blank rows to add a candidate the scan missed.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2 class="text-lg font-semibold">Payment Receipt</h2>
+      <div class="mt-4 grid gap-5 md:grid-cols-2">
+        <div>
+          <label class="mb-1 block text-sm font-medium">{{ review_form.receipt_number.label }} *</label>
+          {{ review_form.receipt_number }}
+          {% if review_form.receipt_number.errors %}<p class="mt-1 text-xs text-red-600">{{ review_form.receipt_number.errors.0 }}</p>{% endif %}
+          {% if application.receipt_number_confidence %}
+          <p class="mt-1 text-xs text-slate-400">OCR confidence: {{ application.receipt_number_confidence|floatformat:0 }}%</p>
+          {% elif not application.receipt_number %}
+          <p class="mt-1 text-xs text-amber-700">No receipt number could be read. Enter it from the receipt.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if duplicate_receipt %}
+      <div class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+        <p class="font-semibold">Duplicate receipt number</p>
+        <p class="mt-1">This receipt number has already been used for {{ duplicate_receipt }}.</p>
+        <label class="mt-3 flex items-center gap-2 text-xs">
+          {{ review_form.confirm_duplicate_receipt }}
+          <span>{{ review_form.confirm_duplicate_receipt.label }}</span>
+        </label>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2 class="text-lg font-semibold">Documents</h2>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        {% for document in application.documents.all %}
+        <a href="{% url 'applications:document' document.pk %}" target="_blank" rel="noopener"
+           class="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-sm hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800">
+          <span class="font-medium">{{ document.get_kind_display }}</span>
+          <span class="text-xs text-slate-500">
+            {{ document.size_display }}
+            {% if document.page_count %}&middot; {{ document.page_count }} page(s){% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+      <p class="mt-3 text-xs text-slate-500">
+        Documents are stored on this server and are only visible to signed-in examination officers.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="flex flex-wrap gap-3">
+        <button type="submit" name="action" value="confirm" class="btn-primary">Confirm &amp; Continue</button>
+        <button type="submit" name="action" value="save" class="btn-secondary">Save Corrections</button>
+        <a href="{% url 'applications:list' %}" class="btn-secondary">Back to Applications</a>
+      </div>
+      <p class="mt-3 text-xs text-slate-500">
+        Examination records are created only after you confirm. Each candidate then receives a
+        unique examination ID.
+      </p>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

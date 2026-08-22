@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Process Application — NCAA{% endblock %}
+{% block page_heading %}Process Application{% endblock %}
+{% block page_subheading %}Select the examination type and provide the scanned documents{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" class="space-y-5" data-loading
+          x-data="{ letter: false, receipt: false }">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Examination Type *</label>
+        {{ form.exam_type }}
+        {% if form.exam_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.exam_type.errors.0 }}</p>{% endif %}
+        <p class="mt-1 text-xs text-slate-500">This is checked against the examination type stated in the application letter.</p>
+      </div>
+
+      <div class="border-t border-slate-200 pt-5 dark:border-slate-700">
+        <h2 class="text-sm font-semibold">Required Documents</h2>
+        <p class="mt-1 text-xs text-slate-500">Both documents are required. Accepted formats: PDF, JPG, PNG.</p>
+
+        <div class="mt-4 grid gap-5 md:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-sm font-medium">
+              Application Letter *
+              <span x-show="letter" x-cloak class="ml-1 text-emerald-600">&check;</span>
+            </label>
+            {{ form.application_letter }}
+            {% if form.application_letter.errors %}<p class="mt-1 text-xs text-red-600">{{ form.application_letter.errors.0 }}</p>{% endif %}
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium">
+              Payment Receipt *
+              <span x-show="receipt" x-cloak class="ml-1 text-emerald-600">&check;</span>
+            </label>
+            {{ form.receipt }}
+            {% if form.receipt.errors %}<p class="mt-1 text-xs text-red-600">{{ form.receipt.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <p x-show="!(letter && receipt)" x-cloak class="mt-3 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+          Provide both the application letter and the payment receipt before continuing.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+        <button type="submit" class="btn-primary"
+                :disabled="!(letter && receipt)"
+                :class="(letter && receipt) ? '' : 'cursor-not-allowed opacity-50'">
+          Process Documents
+        </button>
+        <a href="{% url 'applications:list' %}" class="btn-secondary">Cancel</a>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}

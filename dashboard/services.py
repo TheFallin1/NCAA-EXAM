@@ -45,13 +45,37 @@ def get_dashboard_stats():
     }
 
 
+def normalise_month(year, month):
+    """Coerce a requested year/month to a real calendar month.
+
+    These arrive straight from the query string, so anything can turn up.
+    """
+    today = timezone.localdate()
+    try:
+        year = int(year)
+    except (TypeError, ValueError):
+        year = today.year
+    try:
+        month = int(month)
+    except (TypeError, ValueError):
+        month = today.month
+
+    if not 1 <= month <= 12:
+        month = today.month
+    if not 1900 <= year <= 2999:
+        year = today.year
+    return year, month
+
+
 def get_calendar_events(year, month):
     """Return dict of day -> count for a given month."""
     from calendar import monthrange
+    from datetime import date
 
-    start = timezone.datetime(year, month, 1).date()
+    year, month = normalise_month(year, month)
+    start = date(year, month, 1)
     _, last_day = monthrange(year, month)
-    end = timezone.datetime(year, month, last_day).date()
+    end = date(year, month, last_day)
 
     rows = (
         ExamSchedule.objects.filter(exam_date__gte=start, exam_date__lte=end)

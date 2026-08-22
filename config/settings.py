@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'exams',
     'dashboard',
     'slips',
+    'applications',
 ]
 
 MIDDLEWARE = [
@@ -171,6 +172,91 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    # Off by default: enabling HSTS on an internal network before TLS is
+    # settled locks browsers out. Set once the NCAA server has a trusted
+    # certificate, e.g. 31536000 for one year.
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool(
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False
+    )
 
 GROUP_EXAMINATION_OFFICER = 'Examination Officer'
 GROUP_SYSTEM_ADMIN = 'System Admin'
+
+
+# ---------------------------------------------------------------------------
+# Document intake / private storage (on-premise: never leaves NCAA control)
+# ---------------------------------------------------------------------------
+PRIVATE_MEDIA_ROOT = Path(
+    env('PRIVATE_MEDIA_ROOT', default=str(BASE_DIR / 'private_media'))
+)
+MAX_UPLOAD_SIZE = env.int('MAX_UPLOAD_SIZE', default=10 * 1024 * 1024)
+ALLOWED_UPLOAD_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png']
+
+# Django's own upload guards, kept just above our application-level limit so a
+# hostile request is rejected by the framework before it reaches a view.
+FILE_UPLOAD_MAX_MEMORY_SIZE = min(MAX_UPLOAD_SIZE, 2 * 1024 * 1024)
+DATA_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE + (1024 * 1024)
+
+# Optional nginx/apache accelerated file serving for the authenticated
+# document view. Leave empty to stream through Django.
+PRIVATE_MEDIA_ACCEL_HEADER = env('PRIVATE_MEDIA_ACCEL_HEADER', default='')
+PRIVATE_MEDIA_ACCEL_PREFIX = env('PRIVATE_MEDIA_ACCEL_PREFIX', default='/protected/')
+
+# ---------------------------------------------------------------------------
+# OCR (self-hosted; no external cloud services)
+# ---------------------------------------------------------------------------
+OCR_ENGINE = env('OCR_ENGINE', default='tesseract')  # 'tesseract' | 'fake'
+OCR_ENGINE_PATH = env('OCR_ENGINE_PATH', default='')  # tesseract binary path
+OCR_LANGUAGES = env('OCR_LANGUAGES', default='eng')
+OCR_DPI = env.int('OCR_DPI', default=300)
+OCR_MAX_PAGES = env.int('OCR_MAX_PAGES', default=20)
+OCR_CONFIDENCE_THRESHOLD = env.float('OCR_CONFIDENCE_THRESHOLD', default=80.0)
+OCR_TIMEOUT_SECONDS = env.int('OCR_TIMEOUT_SECONDS', default=300)
+# Run OCR in a worker thread so the officer's request returns immediately.
+# Turn off to process inline (the test suite does this for determinism).
+OCR_BACKGROUND = env.bool('OCR_BACKGROUND', default=True)
+
+# --- Page preparation ------------------------------------------------------
+# Scans arrive sideways and upside down. The correct rotation is found by
+# recognising a small probe of the page at each of the four orientations and
+# keeping whichever reads best.
+OCR_AUTO_ROTATE = env.bool('OCR_AUTO_ROTATE', default=True)
+OCR_DESKEW = env.bool('OCR_DESKEW', default=True)
+# Long edge of the cheap probe used to compare orientations.
+OCR_ORIENTATION_PROBE_EDGE = env.int('OCR_ORIENTATION_PROBE_EDGE', default=1000)
+# Turning the page must be a clear improvement, not a coin flip: two
+# orientations can both yield plausible-looking text.
+OCR_ROTATION_MARGIN = env.float('OCR_ROTATION_MARGIN', default=1.15)
+# A photographed A4 page is often far below the ~300 DPI Tesseract expects.
+OCR_MIN_LONG_EDGE = env.int('OCR_MIN_LONG_EDGE', default=2200)
+OCR_MAX_UPSCALE = env.float('OCR_MAX_UPSCALE', default=4.0)
+# Residual tilt correction, in degrees.
+# Officers photograph documents on a desk; the dark surround has to go before
+# small print such as a receipt number can be read.
+OCR_CROP_TO_PAGE = env.bool('OCR_CROP_TO_PAGE', default=True)
+# Enlargement used when re-reading a single field, such as the receipt number.
+OCR_FIELD_SCALE = env.int('OCR_FIELD_SCALE', default=6)
+OCR_REGION_WORK_EDGE = env.int('OCR_REGION_WORK_EDGE', default=700)
+OCR_REGION_MIN_COVERAGE = env.float('OCR_REGION_MIN_COVERAGE', default=0.25)
+OCR_MIN_SKEW = env.float('OCR_MIN_SKEW', default=0.4)
+OCR_MAX_SKEW = env.float('OCR_MAX_SKEW', default=15.0)
+# A PDF carrying at least this many characters of real text is trusted as a
+# digital original and read directly instead of being rasterised and OCR'd.
+# Kept low because a payment receipt is legitimately short: the distinction
+# being drawn is "has a text layer" versus "is a picture of a page", and an
+# unsearchable scan carries essentially none. If a partial layer ever slips
+# through, no candidates are found and the officer is asked to rescan, so the
+# failure is visible rather than silent.
+OCR_PDF_TEXT_LAYER_MIN_CHARS = env.int('OCR_PDF_TEXT_LAYER_MIN_CHARS', default=50)
+
+# ---------------------------------------------------------------------------
+# Examination structure
+# ---------------------------------------------------------------------------
+EXAM_NUMBER_PREFIX = env('EXAM_NUMBER_PREFIX', default='NCAA')
+# NCAA runs Flight Dispatch Paper 1 and Paper 2 on different days, so the
+# "both papers share one schedule" option starts switched off. Officers can
+# still tick it per application if a sitting is ever combined.
+FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT = env.bool(
+    'FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT', default=False
+)

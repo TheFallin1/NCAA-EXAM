@@ -11,7 +11,11 @@ from django.views.generic import FormView, ListView, TemplateView, View
 from accounts.mixins import OfficerRequiredMixin, SystemAdminRequiredMixin
 from accounts.models import OfficerProfile
 from dashboard.models import ActivityLog
-from dashboard.services import get_calendar_events, get_dashboard_stats
+from dashboard.services import (
+    get_calendar_events,
+    get_dashboard_stats,
+    normalise_month,
+)
 from exams.models import ExamSchedule
 
 import csv
@@ -25,12 +29,13 @@ class DashboardHomeView(OfficerRequiredMixin, TemplateView):
         stats = get_dashboard_stats()
         ctx.update(stats)
         today = date.today()
-        ctx['calendar_year'] = int(self.request.GET.get('year', today.year))
-        ctx['calendar_month'] = int(self.request.GET.get('month', today.month))
-        ctx['calendar_events'] = get_calendar_events(
-            ctx['calendar_year'],
-            ctx['calendar_month'],
+        year, month = normalise_month(
+            self.request.GET.get('year', today.year),
+            self.request.GET.get('month', today.month),
         )
+        ctx['calendar_year'] = year
+        ctx['calendar_month'] = month
+        ctx['calendar_events'] = get_calendar_events(year, month)
         import json
 
         ctx['chart_labels_json'] = json.dumps(stats['chart_labels'])
@@ -56,8 +61,9 @@ class CalendarAPIView(OfficerRequiredMixin, View):
     def get(self, request):
         from django.http import JsonResponse
 
-        year = int(request.GET.get('year', date.today().year))
-        month = int(request.GET.get('month', date.today().month))
+        year, month = normalise_month(
+            request.GET.get('year'), request.GET.get('month')
+        )
         return JsonResponse(get_calendar_events(year, month))
 
 

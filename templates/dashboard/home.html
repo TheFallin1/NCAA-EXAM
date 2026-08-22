@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Dashboard — NCAA{% endblock %}
 {% block page_heading %}Dashboard{% endblock %}
@@ -19,7 +20,7 @@
     <p class="mt-1 text-3xl font-bold">{{ upcoming_count }}</p>
   </div>
   <div class="card flex items-center justify-center">
-    <a href="{% url 'exams:schedule' %}" class="btn-primary w-full text-center">+ Schedule Exam</a>
+    <a href="{% url 'applications:process' %}" class="btn-primary w-full text-center">+ Process Application</a>
   </div>
 </div>
 
@@ -69,7 +70,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chart.4.4.1.umd.min.js' %}"></script>
 <script>
   const ctx = document.getElementById('examTypeChart');
   if (ctx) {
