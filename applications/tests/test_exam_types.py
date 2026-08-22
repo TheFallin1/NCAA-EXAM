@@ -211,3 +211,43 @@ class ContextualDetectionTests(SimpleTestCase):
             'REQUEST FOR EXAM DATE FOR CABIN\nCREW AB-INITIO\nSTUDENTS'
         )
         self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+
+
+class TypeRatingDistractorTests(SimpleTestCase):
+    """A type rating names an aircraft, never an examination category."""
+
+    def test_no_aircraft_type_rating_classifies_an_application(self):
+        for text in [
+            'Embraer 135/145 Type rating exam',
+            'Boeing 737 Classic Type rating exam in Lagos',
+            'schedule the students for Embraer 135/145 Type rating exam',
+            'Airbus A320 type rating',
+            'ATR 72 differences training',
+        ]:
+            with self.subTest(text=text):
+                self.assertIsNone(exam_types.detect(text).exam_type)
+
+    def test_the_singular_student_form_is_recognised(self):
+        """Real subject lines say "STUDENT" as often as "STUDENTS"."""
+        detection = exam_types.detect(
+            'REQUEST FOR EXAM DATE FOR CABIN CREW STUDENT EMBRAER 135/145'
+        )
+        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+        self.assertTrue(detection.contextual)
+
+    def test_conversion_training_wording_resolves(self):
+        detection = exam_types.detect(
+            'the just concluded Cabin crew conversion training'
+        )
+        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+
+    def test_an_aircraft_type_in_the_subject_does_not_override_the_type(self):
+        text = (
+            'REQUEST FOR EXAM DATE FOR CABIN CREW STUDENT EMBRAER 135/145 '
+            'We would like to schedule the students for Embraer 135/145 Type '
+            'rating exam.'
+        )
+        detection = exam_types.detect(text)
+        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+        self.assertNotIn(ExamType.PILOT, detection.scores)
+        self.assertNotIn(ExamType.AME, detection.scores)

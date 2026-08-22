@@ -136,6 +136,44 @@ Dr. Oludayo Taiwo Gideon
 Accountable Managers
 """
 
+# Mirrors a second real submission. Three of its four list markers came back
+# from recognition as commas rather than full stops, the subject says
+# "STUDENT" in the singular, and the body names an Embraer type rating exam
+# that is not the examination being applied for. Names are fictional.
+COMMA_DELIMITED_LETTER = """LAGOS AVIATION ACADEMY
+
+7th July, 2025
+The Director General Civil Aviation
+Nigerian Civil Aviation Authority (NCAA)
+Corporate Headquarters
+Nnamdi Azikiwe International Airport
+Abuja.
+ATTN - DOLTS
+Dear Sir,
+
+REQUEST FOR EXAM DATE FOR CABIN CREW STUDENT EMBRAER 135/145
+
+The above subject refers
+
+We wish to notify the Authority of the just concluded Cabin crew conversion
+training. The training ended on Thursday June 26th, 2025 and we would like to
+schedule the students for Embraer 135/145 Type rating exam.
+
+Please find students'
+1, ALSAYED RANDA BASSAM
+2, NDUKA ISIOMA HOPE
+3. UWALAKA UCHECHI JUDITH
+4, PHILLIPS MONIOLUWA RITA
+
+Relevant documents are also attached.
+
+Thank you,
+Yours faithfully,
+For: Lagos Aviation Academy
+Bolaji Durojaiye
+Head of Training
+"""
+
 RECEIPT_TEXT = """NIGERIA CIVIL AVIATION AUTHORITY
 OFFICIAL PAYMENT RECEIPT
 

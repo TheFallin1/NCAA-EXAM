@@ -346,3 +346,49 @@ AMOUNT: 10,000.00"""
         match = self.value(text)
         self.assertFalse(match.found)
         self.assertTrue(match.needs_review)
+
+
+class ListMarkerToleranceTests(SimpleTestCase):
+    """List markers rarely survive recognition as clean full stops."""
+
+    def setUp(self):
+        self.extractor = ApplicationExtractor()
+
+    def names(self, text, confidence=90.0):
+        return [c.name for c in self.extractor.extract_candidates(result(text, confidence))]
+
+    def test_a_comma_after_the_number_still_marks_a_candidate(self):
+        """Recognition renders "1." as "1," constantly; three of the four
+        markers on a real submission came back that way."""
+        text = """APPLICATION FOR CABIN CREW EXAMINATION
+Please find students'
+1, ALSAYED RANDA BASSAM
+2, NDUKA ISIOMA HOPE
+3. UWALAKA UCHECHI JUDITH
+4, PHILLIPS MONIOLUWA RITA
+Relevant documents are also attached."""
+        self.assertEqual(self.names(text), [
+            'ALSAYED RANDA BASSAM',
+            'NDUKA ISIOMA HOPE',
+            'UWALAKA UCHECHI JUDITH',
+            'PHILLIPS MONIOLUWA RITA',
+        ])
+
+    def test_every_common_marker_shape_is_accepted(self):
+        markers = ['1.', '1,', '1;', '1:', '1)', '1]', '1-', '(1)', '1']
+        for marker in markers:
+            with self.subTest(marker=marker):
+                text = (
+                    'APPLICATION FOR PILOT EXAMINATION\n'
+                    'We submit the following candidates:\n'
+                    f'{marker} JOHN ADEWALE'
+                )
+                self.assertEqual(self.names(text), ['JOHN ADEWALE'])
+
+    def test_an_amount_is_not_read_as_a_list_entry(self):
+        """Widening the marker set must not let "1,000.00" through."""
+        text = """APPLICATION FOR PILOT EXAMINATION
+We submit the following candidates:
+1. JOHN ADEWALE
+1,000.00 Naira paid"""
+        self.assertEqual(self.names(text), ['JOHN ADEWALE'])

@@ -224,7 +224,7 @@ OCR_BACKGROUND = env.bool('OCR_BACKGROUND', default=True)
 OCR_AUTO_ROTATE = env.bool('OCR_AUTO_ROTATE', default=True)
 OCR_DESKEW = env.bool('OCR_DESKEW', default=True)
 # Long edge of the cheap probe used to compare orientations.
-OCR_ORIENTATION_PROBE_EDGE = env.int('OCR_ORIENTATION_PROBE_EDGE', default=1000)
+OCR_ORIENTATION_PROBE_EDGE = env.int('OCR_ORIENTATION_PROBE_EDGE', default=700)
 # Turning the page must be a clear improvement, not a coin flip: two
 # orientations can both yield plausible-looking text.
 OCR_ROTATION_MARGIN = env.float('OCR_ROTATION_MARGIN', default=1.15)

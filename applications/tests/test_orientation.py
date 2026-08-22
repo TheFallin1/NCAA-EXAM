@@ -292,3 +292,103 @@ class SuppliedReceiptTests(WorkflowTestCase):
         result = self.read()
         self.assertTrue(result.words)
         self.assertIsNotNone(result.page)
+
+
+@unittest.skipUnless(tesseract_available(), SKIP_REASON)
+@override_settings(OCR_ENGINE='tesseract')
+class ContaminatedPageTests(WorkflowTestCase):
+    """Photographs rarely contain only the page being processed.
+
+    A second sheet, a stamp or marginalia at another angle drags the measured
+    skew away from the body text. Applying that correction tilts a page that
+    was already straight, and page segmentation then reads the intruder
+    instead of the letter.
+    """
+
+    def build(self, degrees=90):
+        """The letter with a strip of another page laid sideways across it."""
+        from PIL import Image
+
+        from .base import CABIN_CREW_ABINITIO_LETTER, COMMA_DELIMITED_LETTER
+
+        body = Image.open(io.BytesIO(rasterise(COMMA_DELIMITED_LETTER, dpi=150)))
+        other = Image.open(io.BytesIO(rasterise(CABIN_CREW_ABINITIO_LETTER, dpi=150)))
+        strip = other.crop((0, 0, other.width, int(other.height * 0.35)))
+        strip = strip.rotate(-degrees, expand=True)
+        strip = strip.resize((body.width, int(body.height * 0.10)))
+
+        page = Image.new('RGB', (body.width, body.height + strip.height), 'white')
+        page.paste(strip, (0, 0))
+        page.paste(body, (0, strip.height))
+
+        path = f'{self._media_root}/contaminated.png'
+        page.save(path)
+        return path
+
+    def test_the_letter_is_read_not_the_intruding_sheet(self):
+        result = read_document(self.build(), engine=get_engine(), hint='letter')
+        self.assertIn('CABIN CREW', result.text.upper())
+
+        detection = ApplicationExtractor().extract_exam_type(result)
+        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+
+    def test_the_candidate_list_survives(self):
+        result = read_document(self.build(), engine=get_engine(), hint='letter')
+        names = [c.name for c in ApplicationExtractor().extract_candidates(result)]
+        self.assertIn('ALSAYED RANDA BASSAM', names)
+        self.assertIn('PHILLIPS MONIOLUWA RITA', names)
+
+    def test_a_correction_that_reads_worse_is_discarded(self):
+        """Preparation is monotonic: no step is kept unless it helps."""
+        from applications.services.preprocess import _deskew, _improves
+
+        from .base import COMMA_DELIMITED_LETTER
+
+        from PIL import Image
+
+        page = Image.open(io.BytesIO(rasterise(COMMA_DELIMITED_LETTER, dpi=150)))
+        engine = get_engine()
+
+        # A straight page tilted by a bogus angle must not look like an
+        # improvement over the straight one.
+        self.assertFalse(_improves(_deskew(page, 4.0), page, engine))
+
+
+@unittest.skipUnless(tesseract_available(), SKIP_REASON)
+@override_settings(OCR_ENGINE='tesseract')
+class CommaDelimitedLetterTests(ReviewHelperMixin, WorkflowTestCase):
+    """The second real submission, end to end through the workflow."""
+
+    def submit(self, exam_type='cabin_crew', degrees=0):
+        from .base import COMMA_DELIMITED_LETTER
+
+        page = rasterise(COMMA_DELIMITED_LETTER, dpi=150)
+        if degrees:
+            page = turn(page, degrees)
+        return self.client.post('/applications/process/', {
+            'exam_type': exam_type,
+            'application_letter': SimpleUploadedFile(
+                'letter.png', page, content_type='image/png'
+            ),
+            'receipt': SimpleUploadedFile(
+                'receipt.png', rasterise(RECEIPT_TEXT), content_type='image/png'
+            ),
+        })
+
+    def test_all_four_candidates_are_extracted(self):
+        self.submit()
+        application = Application.objects.get()
+        self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
+        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.extracted_candidates.count(), 4)
+
+    def test_the_applicant_academy_is_recorded(self):
+        self.submit()
+        application = Application.objects.get()
+        self.assertIn('LAGOS AVIATION', application.company_name.upper())
+
+    def test_it_works_sideways_too(self):
+        self.submit(degrees=90)
+        application = Application.objects.get()
+        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.extracted_candidates.count(), 4)
