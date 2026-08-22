@@ -83,12 +83,15 @@ _LIST_TERMINATORS = (
     r'^\s*signed\s*$',
 )
 
-_NUMBERED = re.compile(r'^\(?\s*(\d{1,3})\s*[.)\]:\-]\s*(.+)$')
+# The delimiter class is deliberately wide. Recognition renders the full
+# stop after a list number as a comma or semicolon at least as often as a
+# full stop, and a missing delimiter silently drops that candidate.
+_NUMBERED = re.compile(r'^\(?\s*(\d{1,3})\s*[.,;:)\]\-]\s*(.+)$')
 # A serial number with no punctuation after it, e.g. "1 IBRAHIM MUSA".
 # Recognition normalises whitespace, so the column gap in a tabulated list is
 # routinely flattened to a single space. Only applied inside a candidate block:
 # outside one it would happily read "12 Airport Road" as a candidate.
-_NUMBERED_BARE = re.compile(r'^\(?\s*(\d{1,3})\s+(.+)$')
+_NUMBERED_BARE = re.compile(r'^\(?\s*(\d{1,3})\s*[.,;:)\]\-]?\s+(.+)$')
 _BULLETED = re.compile(r'^\s*[-•·*‣◦]\s+(.+)$')
 _TOKEN = re.compile(r"^[A-Za-z][A-Za-z'\-]*\.?$")
 _INITIAL = re.compile(r'^[A-Za-z]\.?$')
