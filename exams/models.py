@@ -7,15 +7,102 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 
-class ExamType(models.TextChoices):
+class ExamCategory(models.TextChoices):
+    """The examination categories NCAA runs.
+
+    The first of the two dependent selections an officer makes. Which papers
+    sit under each category is not fixed here -- that is configuration, held in
+    PaperType -- so a paper can be added or renamed without touching this.
+
+    Declared in the order the dropdown offers them.
+    """
+
     CABIN_CREW = 'cabin_crew', 'Cabin Crew'
-    AME = 'ame', 'AME'
     PILOT = 'pilot', 'Pilot'
     FLIGHT_DISPATCH = 'flight_dispatch', 'Flight Dispatch'
+    AME = 'ame', 'AME'
+
+
+class PaperType(models.Model):
+    """One paper offered under one examination category.
+
+    These rows *are* the configuration behind the Paper Type dropdown, the OCR
+    paper detection and the validation of a category/paper pair. NCAA can add,
+    rename or retire a paper from the admin without a code or schema change,
+    which is what the placeholder AME papers need: their official names are not
+    yet confirmed.
+
+    `code` is the stable value written onto an examination record; `name` is
+    the label officers read. Renaming a paper therefore relabels it everywhere
+    without rewriting a single historical record.
+    """
+
+    exam_category = models.CharField(
+        max_length=32, choices=ExamCategory.choices, db_index=True
+    )
+    code = models.SlugField(
+        max_length=32,
+        help_text=(
+            'Stable identifier stored on examination records. Do not change it '
+            'once records exist -- change the name instead.'
+        ),
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text='The label officers see, e.g. "B737" or "General Paper".',
+    )
+    detection_terms = models.TextField(
+        blank=True,
+        help_text=(
+            'One phrase per line that names this paper in an application '
+            'letter, e.g. "B737". A phrase only counts where it appears in an '
+            'examination context, so the same words in a letterhead or a '
+            'training history are ignored.'
+        ),
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0, help_text='Lower numbers appear first in the dropdown.'
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=(
+            'Clear this to retire a paper. Records that already use it keep '
+            'their label; the paper simply stops being offered.'
+        ),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['exam_category', 'display_order', 'name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['exam_category', 'code'], name='unique_paper_code_per_category'
+            )
+        ]
+        verbose_name = 'Paper Type'
+        verbose_name_plural = 'Paper Types'
+
+    def __str__(self):
+        return f'{self.get_exam_category_display()} - {self.name}'
+
+    @property
+    def terms(self):
+        """The detection phrases, one per line, blank lines dropped."""
+        return [
+            line.strip()
+            for line in (self.detection_terms or '').splitlines()
+            if line.strip()
+        ]
 
 
 class Paper(models.TextChoices):
-    """Papers within an examination. Only Flight Dispatch uses these."""
+    """Legacy per-paper scheduling values.
+
+    Superseded by PaperType: an application now names the single paper it is
+    for, rather than one examination covering several. Kept so the ExamPaper
+    rows written under the old two-paper Flight Dispatch model still render.
+    """
 
     PAPER_1 = 'paper_1', 'Paper 1'
     PAPER_2 = 'paper_2', 'Paper 2'
@@ -76,7 +163,13 @@ class ExamSchedule(models.Model):
     exam_number = models.CharField(max_length=50, unique=True, db_index=True)
     receipt_number = models.CharField(max_length=50, db_index=True)
     company_name = models.CharField(max_length=255, db_index=True)
-    exam_type = models.CharField(max_length=32, choices=ExamType.choices, db_index=True)
+    exam_category = models.CharField(
+        max_length=32, choices=ExamCategory.choices, db_index=True
+    )
+    # Held separately from the category, never combined into one string, so
+    # scheduling, reporting, searching and filtering can all work on either.
+    # Blank only on records created before papers were captured.
+    paper_type = models.CharField(max_length=32, blank=True, db_index=True)
 
     # Null between confirmation (when the examination ID is issued) and
     # scheduling. Populated for every scheduled examination.
@@ -110,7 +203,8 @@ class ExamSchedule(models.Model):
     class Meta:
         ordering = ['-exam_date', '-exam_time']
         indexes = [
-            models.Index(fields=['exam_date', 'exam_type']),
+            models.Index(fields=['exam_date', 'exam_category']),
+            models.Index(fields=['exam_category', 'paper_type']),
             models.Index(fields=['-created_at']),
             models.Index(fields=['status']),
         ]
@@ -143,14 +237,25 @@ class ExamSchedule(models.Model):
             raise ValidationError({'exam_date': 'Exam date cannot be in the past.'})
 
     @property
-    def exam_type_display(self):
-        return self.get_exam_type_display()
+    def exam_category_display(self):
+        return self.get_exam_category_display()
+
+    @property
+    def paper_type_label(self):
+        """The paper's configured name, for the slip and every listing."""
+        from .paper_types import label_for
+
+        return label_for(self.exam_category, self.paper_type)
 
     @property
     def has_papers(self):
-        from .exam_types import has_papers
+        """True only for legacy records written under the old two-paper model.
 
-        return has_papers(self.exam_type)
+        An examination now names the single paper it is for, so nothing new
+        creates ExamPaper rows. Reading the prefetched relation rather than
+        querying keeps the slip and record list at one query.
+        """
+        return bool(self.papers.all())
 
     @property
     def is_scheduled(self):

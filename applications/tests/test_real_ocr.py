@@ -96,8 +96,8 @@ class TesseractRecognitionTests(WorkflowTestCase):
             (FLIGHT_DISPATCH_LETTER, 'flight_dispatch'),
         ):
             with self.subTest(expected=expected):
-                detection = extractor.extract_exam_type(self.read_image(text))
-                self.assertEqual(detection.exam_type, expected)
+                detection = extractor.extract_exam_category(self.read_image(text))
+                self.assertEqual(detection.exam_category, expected)
 
     def test_the_receipt_number_survives_recognition(self):
         from applications.services.extraction import ReceiptExtractor
@@ -137,9 +137,10 @@ class TesseractRecognitionTests(WorkflowTestCase):
 class ScannedWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
     """The officer's full journey, driven by scanned page images."""
 
-    def submit_scan(self, exam_type='pilot', letter=PILOT_LETTER, receipt=RECEIPT_TEXT):
+    def submit_scan(self, exam_category='pilot', letter=PILOT_LETTER, receipt=RECEIPT_TEXT):
         return self.client.post('/applications/process/', {
-            'exam_type': exam_type,
+            'exam_category': exam_category,
+            'paper_type': self.default_paper(exam_category),
             'application_letter': SimpleUploadedFile(
                 'letter.png', rasterise(letter), content_type='image/png'
             ),
@@ -153,7 +154,7 @@ class ScannedWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
         application = Application.objects.get()
 
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
-        self.assertEqual(application.detected_exam_type, 'pilot')
+        self.assertEqual(application.detected_exam_category, 'pilot')
         self.assertEqual(application.receipt_number, 'NCAA/2026/004821')
         self.assertEqual(application.extracted_candidates.count(), 5)
         self.assertFalse(application.letter.used_text_layer)
@@ -174,31 +175,31 @@ class ScannedWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
         self.assertTrue(response.content.startswith(b'%PDF'))
 
     def test_a_mismatch_is_caught_on_a_scan(self):
-        self.submit_scan(exam_type='pilot', letter=CABIN_CREW_LETTER)
+        self.submit_scan(exam_category='pilot', letter=CABIN_CREW_LETTER)
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.MISMATCH)
-        self.assertEqual(application.detected_exam_type, 'cabin_crew')
+        self.assertEqual(application.detected_exam_category, 'cabin_crew')
 
     def test_flight_dispatch_runs_from_a_scan(self):
         self.submit_scan(
-            exam_type='flight_dispatch', letter=FLIGHT_DISPATCH_LETTER
+            exam_category='flight_dispatch', letter=FLIGHT_DISPATCH_LETTER
         )
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
 
         self.post_review(application)
         self.client.post(
-            f'/applications/{application.pk}/schedule/',
-            self.schedule_data(multi_paper=True, shared=False),
+            f'/applications/{application.pk}/schedule/', self.schedule_data()
         )
         application.refresh_from_db()
         self.assertEqual(application.processing_status, ProcessingStatus.SCHEDULED)
         for exam in application.exam_records.all():
-            self.assertEqual(exam.papers.count(), 2)
+            self.assertEqual(exam.paper_type, 'paper_1')
 
     def test_a_blank_scan_is_reported_not_silently_accepted(self):
         self.client.post('/applications/process/', {
-            'exam_type': 'pilot',
+            'exam_category': 'pilot',
+            'paper_type': 'general',
             'application_letter': SimpleUploadedFile(
                 'blank.png', rasterise('\n\n\n'), content_type='image/png'
             ),

@@ -2,7 +2,7 @@
 
 {% block title %}Process Application — NCAA{% endblock %}
 {% block page_heading %}Process Application{% endblock %}
-{% block page_subheading %}Select the examination type and provide the scanned documents{% endblock %}
+{% block page_subheading %}Select the examination category and paper, and provide the scanned documents{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl">
@@ -15,10 +15,11 @@
       {% endif %}
 
       <div>
-        <label class="mb-1 block text-sm font-medium">Examination Type *</label>
-        {{ form.exam_type }}
-        {% if form.exam_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.exam_type.errors.0 }}</p>{% endif %}
-        <p class="mt-1 text-xs text-slate-500">This is checked against the examination type stated in the application letter.</p>
+        {% include 'partials/exam_selection.html' %}
+        <p class="mt-2 text-xs text-slate-500">
+          Both are checked against the application letter. The paper list follows the
+          category you choose.
+        </p>
       </div>
 
       <div class="border-t border-slate-200 pt-5 dark:border-slate-700">

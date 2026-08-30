@@ -6,17 +6,27 @@
 
 {% block content %}
 <div class="card mb-6">
-  <form method="get" class="grid gap-4 md:grid-cols-6" x-data="searchDebounce()">
+  <form method="get" class="grid gap-4 md:grid-cols-7" x-data="searchDebounce()">
     <div class="md:col-span-2">
       <label class="mb-1 block text-xs font-medium text-slate-500">Search</label>
       <input type="search" name="q" value="{{ filters.q }}" class="form-input" placeholder="Name, exam #, receipt, company..." @input="submit($el.form)">
     </div>
     <div>
-      <label class="mb-1 block text-xs font-medium text-slate-500">Exam Type</label>
-      <select name="exam_type" class="form-input" onchange="this.form.submit()">
-        <option value="">All types</option>
-        {% for value, label in exam_types %}
-        <option value="{{ value }}" {% if filters.exam_type == value %}selected{% endif %}>{{ label }}</option>
+      <label class="mb-1 block text-xs font-medium text-slate-500">Exam Category</label>
+      <select name="exam_category" class="form-input" onchange="this.form.submit()">
+        <option value="">All categories</option>
+        {% for value, label in exam_categories %}
+        <option value="{{ value }}" {% if filters.exam_category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-medium text-slate-500">Paper</label>
+      <select name="paper_type" class="form-input" onchange="this.form.submit()"
+              {% if not filters.exam_category %}disabled{% endif %}>
+        <option value="">{% if filters.exam_category %}All papers{% else %}Select a category first{% endif %}</option>
+        {% for value, label in paper_types %}
+        <option value="{{ value }}" {% if filters.paper_type == value %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
@@ -36,7 +46,7 @@
         <option value="candidate_name" {% if filters.sort == 'candidate_name' %}selected{% endif %}>Name A–Z</option>
       </select>
     </div>
-    <div class="flex items-end gap-2 md:col-span-6">
+    <div class="flex items-end gap-2 md:col-span-7">
       <button type="submit" class="btn-primary">Apply</button>
       <a href="{% url 'exams:list' %}" class="btn-secondary">Clear</a>
       <a href="{% url 'exams:schedule' %}" class="btn-primary ml-auto">+ Schedule New</a>
@@ -52,7 +62,8 @@
         <tr>
           <th class="px-4 py-3 text-left font-semibold">Candidate</th>
           <th class="px-4 py-3 text-left font-semibold">Exam #</th>
-          <th class="px-4 py-3 text-left font-semibold">Type</th>
+          <th class="px-4 py-3 text-left font-semibold">Category</th>
+          <th class="px-4 py-3 text-left font-semibold">Paper</th>
           <th class="px-4 py-3 text-left font-semibold">Date / Time</th>
           <th class="px-4 py-3 text-left font-semibold">Venue</th>
           <th class="px-4 py-3 text-right font-semibold">Actions</th>
@@ -63,7 +74,8 @@
         <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
           <td class="px-4 py-3 font-medium">{{ exam.candidate_name }}</td>
           <td class="px-4 py-3">{{ exam.exam_number }}</td>
-          <td class="px-4 py-3">{{ exam.get_exam_type_display }}</td>
+          <td class="px-4 py-3">{{ exam.get_exam_category_display }}</td>
+          <td class="px-4 py-3">{{ exam.paper_type_label|default:"—" }}</td>
           <td class="px-4 py-3">
             {% if exam.exam_date %}{{ exam.exam_date }} · {{ exam.exam_time }}
             {% else %}<span class="rounded bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">Awaiting scheduling</span>{% endif %}
@@ -86,10 +98,10 @@
     <span class="text-sm text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
     <div class="flex gap-2">
       {% if page_obj.has_previous %}
-      <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&exam_type={{ filters.exam_type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Previous</a>
+      <a href="?page={{ page_obj.previous_page_number }}&q={{ filters.q }}&exam_category={{ filters.exam_category }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Previous</a>
       {% endif %}
       {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&exam_type={{ filters.exam_type }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Next</a>
+      <a href="?page={{ page_obj.next_page_number }}&q={{ filters.q }}&exam_category={{ filters.exam_category }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}" class="btn-secondary text-xs">Next</a>
       {% endif %}
     </div>
   </div>

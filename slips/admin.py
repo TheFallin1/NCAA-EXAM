@@ -8,13 +8,17 @@ class SlipRecordAdmin(admin.ModelAdmin):
     list_display = (
         'exam_number',
         'candidate_name',
-        'exam_type',
+        'exam_category',
+        'paper_type',
         'created_by',
         'created_at',
         'preview_count',
         'pdf_download_count',
     )
-    list_filter = ('created_at', 'pdf_generated_at', 'exam__exam_type')
+    list_filter = (
+        'created_at', 'pdf_generated_at', 'exam__exam_category',
+        'exam__paper_type',
+    )
     search_fields = (
         'exam__candidate_name',
         'exam__exam_number',
@@ -39,6 +43,10 @@ class SlipRecordAdmin(admin.ModelAdmin):
     def candidate_name(self, obj):
         return obj.exam.candidate_name
 
-    @admin.display(description='Exam Type')
-    def exam_type(self, obj):
-        return obj.exam.get_exam_type_display()
+    @admin.display(description='Exam Category')
+    def exam_category(self, obj):
+        return obj.exam.get_exam_category_display()
+
+    @admin.display(description='Paper')
+    def paper_type(self, obj):
+        return obj.exam.paper_type_label

@@ -2,8 +2,7 @@ from django import forms
 from django.forms import modelformset_factory
 from django.utils import timezone
 
-from exams.exam_types import has_papers
-from exams.models import ExamType, Paper
+from exams.forms import ExamSelectionMixin
 
 from .models import ExtractedCandidate
 from .services.documents import DocumentValidationError, validate_upload
@@ -11,18 +10,13 @@ from .services.documents import DocumentValidationError, validate_upload
 _FILE_ACCEPT = '.pdf,.jpg,.jpeg,.png'
 
 
-class ProcessApplicationForm(forms.Form):
-    """Step 1: examination type plus the two mandatory documents.
+class ProcessApplicationForm(ExamSelectionMixin, forms.Form):
+    """Step 1: the examination selection plus the two mandatory documents.
 
     Both documents are required here as well as in the browser, so a submission
     that bypasses the disabled button is still refused.
     """
 
-    exam_type = forms.ChoiceField(
-        choices=[('', 'Select examination type')] + list(ExamType.choices),
-        widget=forms.Select(attrs={'class': 'form-input'}),
-        label='Examination type',
-    )
     application_letter = forms.FileField(
         label='Application letter',
         widget=forms.FileInput(attrs={
@@ -40,6 +34,17 @@ class ProcessApplicationForm(forms.Form):
             'x-on:change': 'receipt = $event.target.files.length > 0',
         }),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._build_exam_selection()
+        # Keep the declared order: the two selections lead the form.
+        self.order_fields(
+            ['exam_category', 'paper_type', 'application_letter', 'receipt']
+        )
+
+    def clean(self):
+        return self._clean_exam_selection(super().clean())
 
     def clean_application_letter(self):
         return self._validate(self.cleaned_data['application_letter'])
@@ -133,115 +138,40 @@ class ReviewForm(forms.Form):
         return (self.cleaned_data.get('receipt_number') or '').strip().upper()
 
 
-class _ScheduleFieldsMixin:
-    def _schedule_fields(self, prefix, label):
-        return {
-            f'{prefix}exam_date': forms.DateField(
-                label=f'{label} date',
-                widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            ),
-            f'{prefix}exam_time': forms.TimeField(
-                label=f'{label} time',
-                widget=forms.TimeInput(attrs={'class': 'form-input', 'type': 'time'}),
-            ),
-            f'{prefix}venue': forms.CharField(
-                label=f'{label} venue',
-                max_length=255,
-                widget=forms.TextInput(
-                    attrs={'class': 'form-input', 'placeholder': 'Examination venue'}
-                ),
-            ),
-        }
-
-
-class ScheduleStepForm(forms.Form, _ScheduleFieldsMixin):
+class ScheduleStepForm(forms.Form):
     """Step 4: schedule the confirmed examination.
 
-    Single-sitting examinations get one set of fields. Flight Dispatch gets a
-    set per paper, because NCAA sits Paper 1 and Paper 2 on different days --
-    with an option to reuse Paper 1's schedule if a combined sitting is ever
-    arranged.
+    One application is for one paper of one category -- Flight Dispatch Paper 1
+    is a different examination from Paper 2 -- so there is a single date, time
+    and venue, which every candidate on the application shares.
     """
 
-    def __init__(self, *args, exam_type=None, shared_default=False, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.exam_type = exam_type
-        self.multi_paper = has_papers(exam_type)
+    exam_date = forms.DateField(
+        label='Examination date',
+        widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+    )
+    exam_time = forms.TimeField(
+        label='Examination time',
+        widget=forms.TimeInput(attrs={'class': 'form-input', 'type': 'time'}),
+    )
+    venue = forms.CharField(
+        label='Examination venue',
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={'class': 'form-input', 'placeholder': 'Examination venue'}
+        ),
+    )
 
-        if self.multi_paper:
-            self.fields['share_schedule'] = forms.BooleanField(
-                required=False,
-                initial=shared_default,
-                label='Both papers sit at the same date, time and venue',
-                widget=forms.CheckboxInput(
-                    attrs={'class': 'h-4 w-4 rounded border-slate-300'}
-                ),
-            )
-            for field, definition in self._schedule_fields('paper_1_', 'Paper 1').items():
-                self.fields[field] = definition
-            for field, definition in self._schedule_fields('paper_2_', 'Paper 2').items():
-                definition.required = False
-                self.fields[field] = definition
-        else:
-            for field, definition in self._schedule_fields('', 'Examination').items():
-                self.fields[field] = definition
+    def clean_exam_date(self):
+        value = self.cleaned_data['exam_date']
+        if value and value < timezone.localdate():
+            raise forms.ValidationError('The examination date cannot be in the past.')
+        return value
 
-    def clean(self):
-        cleaned = super().clean()
-        today = timezone.localdate()
-
-        if not self.multi_paper:
-            self._reject_past(cleaned, 'exam_date', today)
-            return cleaned
-
-        if cleaned.get('share_schedule'):
-            # Copy Paper 1 across so both papers are stored either way and the
-            # slip renders identically regardless of the configuration.
-            for suffix in ('exam_date', 'exam_time', 'venue'):
-                cleaned[f'paper_2_{suffix}'] = cleaned.get(f'paper_1_{suffix}')
-        else:
-            for suffix, label in (
-                ('exam_date', 'date'),
-                ('exam_time', 'time'),
-                ('venue', 'venue'),
-            ):
-                if not cleaned.get(f'paper_2_{suffix}'):
-                    self.add_error(
-                        f'paper_2_{suffix}',
-                        f'Enter the Paper 2 {label}, or tick the shared-schedule box.',
-                    )
-
-        self._reject_past(cleaned, 'paper_1_exam_date', today)
-        self._reject_past(cleaned, 'paper_2_exam_date', today)
-        return cleaned
-
-    def _reject_past(self, cleaned, field, today):
-        value = cleaned.get(field)
-        if value and value < today:
-            self.add_error(field, 'The examination date cannot be in the past.')
-
-    # -- output ------------------------------------------------------------
-    def primary_schedule(self):
-        if self.multi_paper:
-            return None
+    def schedule(self):
+        """The date/time/venue to write onto every record on the application."""
         return {
             'exam_date': self.cleaned_data['exam_date'],
             'exam_time': self.cleaned_data['exam_time'],
             'venue': self.cleaned_data['venue'],
-        }
-
-    def paper_schedules(self):
-        if not self.multi_paper:
-            return None
-        return {
-            Paper.PAPER_1: {
-                'exam_date': self.cleaned_data['paper_1_exam_date'],
-                'exam_time': self.cleaned_data['paper_1_exam_time'],
-                'venue': self.cleaned_data['paper_1_venue'],
-            },
-            Paper.PAPER_2: {
-                'exam_date': self.cleaned_data['paper_2_exam_date'],
-                'exam_time': self.cleaned_data['paper_2_exam_time'],
-                'venue': self.cleaned_data['paper_2_venue'],
-            },
         }

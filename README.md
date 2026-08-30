@@ -15,36 +15,62 @@ NCAA server.
 ```
 Officer login
       |
-Process Application  ->  select examination type
+Process Application  ->  select examination category
+      |                ->  select paper type   (list follows the category)
       |
 Provide application letter + payment receipt   (both mandatory)
       |
-Validate documents  ->  OCR  ->  extract exam type, candidate names, receipt number
+Validate documents  ->  OCR  ->  extract exam category, paper type,
+      |                          candidate names, receipt number
       |
-Compare officer-selected type with the type detected in the letter
+Compare the officer's category and paper with what the letter states
       |
    match? ----- no ----> STOP, mismatch shown, nothing is created
       |
-     yes
+     yes  (or the paper could not be determined -- see below)
       |
 Officer verification  ->  correct any misreadings, confirm
       |
 Generate examination IDs  ->  schedule  ->  generate slips  ->  print
 ```
 
-Flight Dispatch additionally carries **Paper 1** and **Paper 2**, which can be
-scheduled independently or share a single sitting.
+The examination selection is two dependent dropdowns. The category comes first;
+the paper list is then narrowed to that category, so a combination such as
+Cabin Crew + Paper 1 cannot be assembled -- in the browser or by a posted form.
+
+| Examination category | Papers |
+| --- | --- |
+| Cabin Crew | B737, General Paper |
+| Pilot | General Paper |
+| Flight Dispatch | Paper 1, Paper 2 |
+| AME | General Paper, AME Paper 2 (placeholder), AME Paper 3 (placeholder) |
+
+The papers are configuration, not code: add, rename or retire one under
+**Exams > Paper Types** in the admin and the dropdown, the OCR detection, the
+validation and the slip all follow. The official AME titles can
+be filled in there once NCAA confirms them, with no code or schema change.
+
+Category and paper are stored as separate columns, never as one combined
+string, so scheduling, reporting, searching and filtering can each work on
+either. Flight Dispatch Paper 1 and Paper 2 are different examinations and are
+processed as separate applications, which is what lets them sit on different
+days -- or the same one.
+
+Many letters name the category but not the paper. The paper is never guessed
+from a passing mention: where the letter does not say, the officer is asked to
+verify their selection. `PAPER_TYPE_UNRESOLVED_POLICY` decides whether that is
+a warning (`review`, the default) or a block (`block`).
 
 ## Features
 
 - Secure officer login (no public registration)
 - Application intake with mandatory letter + receipt
 - Self-hosted OCR (Tesseract) with per-line confidence
-- Candidate, examination-type and receipt-number extraction
-- Mandatory examination-type match check that cannot be bypassed
+- Dependent Examination Category / Paper Type selection, configurable per category
+- Candidate, examination-category, paper-type and receipt-number extraction
+- Mandatory category and paper match checks that cannot be bypassed
 - Officer verification screen with editable candidate names
 - Server-generated, unique examination IDs
-- Flight Dispatch Paper 1 / Paper 2 scheduling and slip layout
 - Individual and batch examination slips (print or PDF)
 - Dashboard with statistics, charts and calendar
 - Search, filter, edit, delete and reprint records
@@ -170,15 +196,23 @@ ApplicationExtractor              ReceiptExtractor
         |                                 |
   Company                          Official Receipt Number
   Candidate name(s)
-  Examination type
+  Examination category
+  Paper type (where the letter says)
 ```
 
-**Examination type** is decided from context, not from keywords. A letter
+**Examination category** is decided from context, not from keywords. A letter
 headed *"REQUEST FOR EXAM DATE FOR CABIN CREW AB-INITIO STUDENTS"* is a Cabin
 Crew application even though its body mentions a *Boeing 737 Classic Type
-rating exam* -- a type named inside an examination context outranks aviation
-vocabulary mentioned in passing. The result is always one of the four
-configured types; nothing new is ever invented.
+rating exam* -- a category named inside an examination context outranks
+aviation vocabulary mentioned in passing. The result is always one of the four
+configured categories; nothing new is ever invented.
+
+**Paper type** is read the same way, and only among the papers configured for
+the category that was detected. A term counts where it sits in examination
+wording -- *"the B737 examination"*, *"candidates for Paper 2"* -- and not
+where it appears in a letterhead, a fleet list or a training history. Where no
+paper is named, or two are named equally, none is returned: the officer is
+asked to verify rather than handed a guess.
 
 **Candidate names** come from the list the letter submits, not from every name
 on the page. The recipient, the signatory and the accountable manager are
@@ -351,7 +385,8 @@ config/         Settings, URLs
 accounts/       Authentication, OfficerProfile, access mixins
 applications/   Application intake, OCR, extraction, verification
   services/     ocr.py, extraction.py, processing.py, confirmation.py, jobs.py
-exams/          ExamSchedule, ExamPaper, examination-type vocabulary, ID generation
+exams/          ExamSchedule, PaperType catalogue, category/paper vocabulary and
+                detection, ID generation
 dashboard/      Dashboard, admin portal, audit trail
 slips/          Slip preview, PDF and batch printing
 templates/      HTML templates
@@ -361,15 +396,21 @@ static/         CSS, JS, vendored front-end libraries, images
 ## Data model
 
 ```
-Application                     one paper submission
+PaperType                       configuration: the papers under each category
+
+Application                     one submission, for one category + one paper
 ├── ApplicationDocument         letter + receipt (one each, enforced)
 ├── ExtractedCandidate          staging; officer-editable, pre-confirmation
 └── ExamSchedule (many)         one per candidate, created only on confirmation
-    └── ExamPaper (0 or 2)      Flight Dispatch Paper 1 and Paper 2
 ```
 
+`Application` and `ExamSchedule` each hold `exam_category` and `paper_type` as
+their own columns.
+
 Examination records created under the older manual workflow have no application
-and are unaffected.
+and are unaffected. `ExamPaper` is retained, unwritten, so records scheduled
+under the previous two-papers-per-examination model still render on their
+slips.
 
 ## License
 

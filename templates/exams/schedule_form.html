@@ -32,11 +32,10 @@
           <label class="mb-1 block text-sm font-medium">Company Name *</label>
           {{ form.company_name }}
         </div>
-        <div>
-          <label class="mb-1 block text-sm font-medium">Exam Type *</label>
-          {{ form.exam_type }}
+        <div class="md:col-span-2">
+          {% include 'partials/exam_selection.html' %}
         </div>
-        <div>
+        <div class="md:col-span-2">
           <label class="mb-1 block text-sm font-medium">Venue *</label>
           {{ form.venue }}
         </div>

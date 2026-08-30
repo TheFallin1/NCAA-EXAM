@@ -33,6 +33,35 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /**
+   * The dependent Examination Category / Paper Type pair.
+   *
+   * `catalogue` maps a category to the papers configured under it, so a paper
+   * added or renamed in the admin appears here without a code change. Changing
+   * the category clears the paper and reloads the list, which is what makes an
+   * invalid pair -- Cabin Crew with Flight Dispatch's Paper 1 -- unreachable.
+   * The server checks the pair again on submit.
+   */
+  Alpine.data('examSelection', (catalogue, category, paper) => ({
+    catalogue: catalogue || {},
+    category: category || '',
+    paper: paper || '',
+    papers() {
+      return this.catalogue[this.category] || [];
+    },
+    onCategoryChange() {
+      // Clear first: a paper carried over from the previous category would be
+      // a combination the officer never chose.
+      this.paper = '';
+      const available = this.papers();
+      // A category with exactly one paper has nothing to choose.
+      if (available.length === 1) this.paper = available[0].value;
+    },
+    placeholder() {
+      return this.category ? 'Select Paper Type' : 'Select Examination Category First';
+    },
+  }));
+
   Alpine.data('searchDebounce', () => ({
     timeout: null,
     submit(form) {

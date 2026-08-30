@@ -10,7 +10,7 @@ import uuid
 from django.conf import settings
 from django.db import models
 
-from exams.models import ExamSchedule, ExamType
+from exams.models import ExamCategory, ExamSchedule
 
 from .services.documents import document_upload_path, private_storage
 
@@ -20,7 +20,8 @@ class ProcessingStatus(models.TextChoices):
     QUEUED = 'queued', 'Queued for OCR'
     PROCESSING = 'processing', 'OCR in progress'
     FAILED = 'failed', 'OCR failed'
-    MISMATCH = 'mismatch', 'Examination type mismatch'
+    MISMATCH = 'mismatch', 'Examination category mismatch'
+    PAPER_MISMATCH = 'paper_mismatch', 'Paper type mismatch'
     REVIEW = 'review', 'Awaiting verification'
     CONFIRMED = 'confirmed', 'Confirmed'
     SCHEDULED = 'scheduled', 'Scheduled'
@@ -35,13 +36,28 @@ class Application(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     reference = models.CharField(max_length=32, unique=True, blank=True, db_index=True)
 
-    # What the officer chose before any document was read.
-    exam_type = models.CharField(max_length=32, choices=ExamType.choices, db_index=True)
-    # What OCR independently found in the letter. Kept separate so the two can
-    # be compared, displayed side by side, and audited.
-    detected_exam_type = models.CharField(max_length=32, blank=True)
-    detected_exam_type_evidence = models.CharField(max_length=255, blank=True)
-    detected_exam_type_ambiguous = models.BooleanField(default=False)
+    # What the officer chose before any document was read. The two selections
+    # are dependent but stored apart: combining them into one string would
+    # make every later query -- scheduling, reporting, filtering -- pick a
+    # composite value back apart.
+    exam_category = models.CharField(
+        max_length=32, choices=ExamCategory.choices, db_index=True
+    )
+    # The PaperType code, valid only in combination with exam_category.
+    paper_type = models.CharField(max_length=32, blank=True, db_index=True)
+
+    # What OCR independently found in the letter. Kept separate from the
+    # officer's selection so the two can be compared, displayed side by side,
+    # and audited.
+    detected_exam_category = models.CharField(max_length=32, blank=True)
+    detected_exam_category_evidence = models.CharField(max_length=255, blank=True)
+    detected_exam_category_ambiguous = models.BooleanField(default=False)
+
+    # Blank means the letter did not say, which is a real outcome rather than
+    # a failure: the paper is never guessed from a passing mention.
+    detected_paper_type = models.CharField(max_length=32, blank=True)
+    detected_paper_type_evidence = models.CharField(max_length=255, blank=True)
+    detected_paper_type_ambiguous = models.BooleanField(default=False)
 
     receipt_number = models.CharField(max_length=64, blank=True, db_index=True)
     receipt_number_confidence = models.FloatField(null=True, blank=True)
@@ -130,25 +146,37 @@ class Application(models.Model):
         return self.processing_status in (
             ProcessingStatus.FAILED,
             ProcessingStatus.MISMATCH,
+            ProcessingStatus.PAPER_MISMATCH,
         )
 
     @property
-    def exam_type_label(self):
-        from exams.exam_types import label_for
+    def exam_category_label(self):
+        from exams.exam_categories import label_for
 
-        return label_for(self.exam_type)
-
-    @property
-    def detected_exam_type_label(self):
-        from exams.exam_types import label_for
-
-        return label_for(self.detected_exam_type) if self.detected_exam_type else ''
+        return label_for(self.exam_category)
 
     @property
-    def has_papers(self):
-        from exams.exam_types import has_papers
+    def detected_exam_category_label(self):
+        from exams.exam_categories import label_for
 
-        return has_papers(self.exam_type)
+        return label_for(self.detected_exam_category) if self.detected_exam_category else ''
+
+    @property
+    def paper_type_label(self):
+        from exams.paper_types import label_for
+
+        return label_for(self.exam_category, self.paper_type)
+
+    @property
+    def detected_paper_type_label(self):
+        from exams.paper_types import label_for
+
+        return label_for(self.exam_category, self.detected_paper_type)
+
+    @property
+    def paper_type_determined(self):
+        """True when OCR could name the paper the letter is for."""
+        return bool(self.detected_paper_type)
 
     @property
     def included_candidates(self):

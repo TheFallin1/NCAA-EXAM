@@ -3,7 +3,7 @@ import csv
 from django.contrib import admin
 from django.http import HttpResponse
 
-from .models import ExamSchedule
+from .models import ExamSchedule, PaperType
 
 
 @admin.register(ExamSchedule)
@@ -11,14 +11,15 @@ class ExamScheduleAdmin(admin.ModelAdmin):
     list_display = (
         'candidate_name',
         'exam_number',
-        'exam_type',
+        'exam_category',
+        'paper_type',
         'exam_date',
         'exam_time',
         'venue',
         'scheduled_by',
         'created_at',
     )
-    list_filter = ('exam_type', 'exam_date', 'venue')
+    list_filter = ('exam_category', 'paper_type', 'exam_date', 'venue')
     search_fields = (
         'candidate_name',
         'exam_number',
@@ -36,7 +37,8 @@ class ExamScheduleAdmin(admin.ModelAdmin):
         writer = csv.writer(response)
         writer.writerow([
             'Candidate Name', 'Exam Number', 'Receipt Number', 'Company',
-            'Exam Type', 'Exam Date', 'Exam Time', 'Venue', 'Officer', 'Created',
+            'Exam Category', 'Paper', 'Exam Date', 'Exam Time', 'Venue',
+            'Officer', 'Created',
         ])
         for obj in queryset.select_related('scheduled_by'):
             writer.writerow([
@@ -44,7 +46,8 @@ class ExamScheduleAdmin(admin.ModelAdmin):
                 obj.exam_number,
                 obj.receipt_number,
                 obj.company_name,
-                obj.get_exam_type_display(),
+                obj.get_exam_category_display(),
+                obj.paper_type_label,
                 obj.exam_date,
                 obj.exam_time,
                 obj.venue,
@@ -52,3 +55,28 @@ class ExamScheduleAdmin(admin.ModelAdmin):
                 obj.created_at,
             ])
         return response
+
+
+@admin.register(PaperType)
+class PaperTypeAdmin(admin.ModelAdmin):
+    """Where the papers offered under each category are configured.
+
+    Adding a paper, renaming one -- the placeholder AME papers especially --
+    or retiring one happens here and takes effect everywhere: the dependent
+    dropdown, the OCR detection, the validation and the examination slip.
+    """
+
+    list_display = (
+        'exam_category', 'name', 'code', 'display_order', 'is_active'
+    )
+    list_filter = ('exam_category', 'is_active')
+    list_editable = ('name', 'display_order', 'is_active')
+    search_fields = ('name', 'code', 'detection_terms')
+    ordering = ('exam_category', 'display_order', 'name')
+    readonly_fields = ('created_at', 'updated_at')
+    fieldsets = (
+        (None, {'fields': ('exam_category', 'code', 'name')}),
+        ('Dropdown', {'fields': ('display_order', 'is_active')}),
+        ('OCR detection', {'fields': ('detection_terms',)}),
+        ('Audit', {'fields': ('created_at', 'updated_at')}),
+    )

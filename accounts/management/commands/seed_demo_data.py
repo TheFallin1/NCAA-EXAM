@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import OfficerProfile
-from exams.models import ExamSchedule, ExamType
+from exams.models import ExamCategory, ExamSchedule
 
 
 class Command(BaseCommand):
@@ -80,7 +80,8 @@ class Command(BaseCommand):
                 'exam_number': 'NCAA-CC-2025-001',
                 'receipt_number': 'RCP-10001',
                 'company_name': 'Air Peace Training Centre',
-                'exam_type': ExamType.CABIN_CREW,
+                'exam_category': ExamCategory.CABIN_CREW,
+                'paper_type': 'b737',
                 'exam_date': today + timedelta(days=2),
                 'exam_time': time(9, 0),
                 'venue': 'NCAA HQ, Abuja — Hall A',
@@ -90,7 +91,8 @@ class Command(BaseCommand):
                 'exam_number': 'NCAA-AME-2025-002',
                 'receipt_number': 'RCP-10002',
                 'company_name': 'Dana Maintenance Services',
-                'exam_type': ExamType.AME,
+                'exam_category': ExamCategory.AME,
+                'paper_type': 'general',
                 'exam_date': today,
                 'exam_time': time(11, 30),
                 'venue': 'NCAA HQ, Abuja — Hall B',
@@ -100,7 +102,8 @@ class Command(BaseCommand):
                 'exam_number': 'NCAA-PLT-2025-003',
                 'receipt_number': 'RCP-10003',
                 'company_name': 'Ibrahim Badamasi Babangida College of Aviation',
-                'exam_type': ExamType.PILOT,
+                'exam_category': ExamCategory.PILOT,
+                'paper_type': 'general',
                 'exam_date': today + timedelta(days=5),
                 'exam_time': time(14, 0),
                 'venue': 'NCAA Lagos Regional Office',
@@ -110,7 +113,8 @@ class Command(BaseCommand):
                 'exam_number': 'NCAA-FD-2025-004',
                 'receipt_number': 'RCP-10004',
                 'company_name': 'Max Air Dispatch Unit',
-                'exam_type': ExamType.FLIGHT_DISPATCH,
+                'exam_category': ExamCategory.FLIGHT_DISPATCH,
+                'paper_type': 'paper_1',
                 'exam_date': today + timedelta(days=1),
                 'exam_time': time(10, 0),
                 'venue': 'NCAA HQ, Abuja — Hall C',
@@ -120,7 +124,8 @@ class Command(BaseCommand):
                 'exam_number': 'NCAA-CC-2025-005',
                 'receipt_number': 'RCP-10005',
                 'company_name': 'Overland Airways',
-                'exam_type': ExamType.CABIN_CREW,
+                'exam_category': ExamCategory.CABIN_CREW,
+                'paper_type': 'general',
                 'exam_date': today - timedelta(days=3),
                 'exam_time': time(8, 30),
                 'venue': 'NCAA Kano Regional Office',

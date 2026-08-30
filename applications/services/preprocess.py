@@ -317,7 +317,7 @@ def _improves(candidate, current, engine):
     Every correction is checked rather than trusted. Recognition is not
     monotonic in image quality: a step that helps one page can wreck another,
     and a silent regression here surfaces much later as a missing candidate or
-    an undetected examination type.
+    an undetected examination category.
     """
     return (
         score_readability(engine.raw_data(_probe(candidate)))

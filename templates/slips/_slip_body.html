@@ -14,7 +14,8 @@
       <div class="row"><span class="label">Exam Number</span><span class="value">{{ exam.exam_number }}</span></div>
       <div class="row"><span class="label">Receipt Number</span><span class="value">{{ exam.receipt_number }}</span></div>
       <div class="row"><span class="label">Company</span><span class="value">{{ exam.company_name }}</span></div>
-      <div class="row"><span class="label">Exam Type</span><span class="value">{{ exam.get_exam_type_display }}</span></div>
+      <div class="row"><span class="label">Exam Category</span><span class="value">{{ exam.get_exam_category_display }}</span></div>
+      <div class="row"><span class="label">Paper</span><span class="value">{{ exam.paper_type_label|default:"Not specified" }}</span></div>
 {% if not exam.has_papers %}
       <div class="row"><span class="label">Exam Date</span><span class="value">{{ exam.exam_date|date:"l, d F Y"|default:"To be advised" }}</span></div>
       <div class="row"><span class="label">Exam Time</span><span class="value">{{ exam.exam_time|time:"H:i"|default:"To be advised" }}</span></div>

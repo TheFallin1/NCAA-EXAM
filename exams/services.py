@@ -2,24 +2,24 @@
 from django.conf import settings
 from django.utils import timezone
 
-from .models import ExamSchedule, ExamType, NumberSequence
+from .models import ExamCategory, ExamSchedule, NumberSequence
 
 # Short codes used inside examination IDs, e.g. NCAA/PLT/2026/00042.
 _TYPE_CODES = {
-    ExamType.CABIN_CREW: 'CC',
-    ExamType.AME: 'AME',
-    ExamType.PILOT: 'PLT',
-    ExamType.FLIGHT_DISPATCH: 'FD',
+    ExamCategory.CABIN_CREW: 'CC',
+    ExamCategory.AME: 'AME',
+    ExamCategory.PILOT: 'PLT',
+    ExamCategory.FLIGHT_DISPATCH: 'FD',
 }
 
 _MAX_ATTEMPTS = 50
 
 
-def exam_type_code(exam_type):
-    return _TYPE_CODES.get(exam_type, 'GEN')
+def exam_category_code(exam_category):
+    return _TYPE_CODES.get(exam_category, 'GEN')
 
 
-def generate_exam_number(exam_type, year=None):
+def generate_exam_number(exam_category, year=None):
     """Issue a unique examination ID.
 
     Always generated on the server from a locked database counter. The
@@ -27,7 +27,7 @@ def generate_exam_number(exam_type, year=None):
     manual workflow, which were never drawn from this sequence.
     """
     year = year or timezone.localdate().year
-    code = exam_type_code(exam_type)
+    code = exam_category_code(exam_category)
     prefix = settings.EXAM_NUMBER_PREFIX
 
     for _ in range(_MAX_ATTEMPTS):

@@ -9,8 +9,8 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from applications.tests.base import create_officer
-from exams.models import ExamSchedule, ExamType, NumberSequence
-from exams.services import exam_type_code, generate_exam_number
+from exams.models import ExamCategory, ExamSchedule, NumberSequence
+from exams.services import exam_category_code, generate_exam_number
 
 FUTURE = date.today() + timedelta(days=30)
 
@@ -21,31 +21,31 @@ FUTURE = date.today() + timedelta(days=30)
 )
 class ExamNumberTests(TestCase):
     def test_numbers_follow_the_documented_shape(self):
-        number = generate_exam_number(ExamType.PILOT, year=2026)
+        number = generate_exam_number(ExamCategory.PILOT, year=2026)
         self.assertRegex(number, r'^NCAA/PLT/2026/\d{5}$')
 
     def test_each_type_has_its_own_code_and_sequence(self):
         codes = {
-            ExamType.CABIN_CREW: 'CC',
-            ExamType.AME: 'AME',
-            ExamType.PILOT: 'PLT',
-            ExamType.FLIGHT_DISPATCH: 'FD',
+            ExamCategory.CABIN_CREW: 'CC',
+            ExamCategory.AME: 'AME',
+            ExamCategory.PILOT: 'PLT',
+            ExamCategory.FLIGHT_DISPATCH: 'FD',
         }
-        for exam_type, code in codes.items():
-            with self.subTest(exam_type=exam_type):
-                self.assertEqual(exam_type_code(exam_type), code)
-                self.assertIn(f'/{code}/', generate_exam_number(exam_type, year=2026))
+        for exam_category, code in codes.items():
+            with self.subTest(exam_category=exam_category):
+                self.assertEqual(exam_category_code(exam_category), code)
+                self.assertIn(f'/{code}/', generate_exam_number(exam_category, year=2026))
 
     def test_numbers_increment(self):
-        first = generate_exam_number(ExamType.PILOT, year=2026)
-        second = generate_exam_number(ExamType.PILOT, year=2026)
+        first = generate_exam_number(ExamCategory.PILOT, year=2026)
+        second = generate_exam_number(ExamCategory.PILOT, year=2026)
         self.assertNotEqual(first, second)
         self.assertEqual(int(second.rsplit('/', 1)[1]), int(first.rsplit('/', 1)[1]) + 1)
 
     def test_sequences_are_independent_per_type_and_year(self):
-        generate_exam_number(ExamType.PILOT, year=2026)
-        ame = generate_exam_number(ExamType.AME, year=2026)
-        next_year = generate_exam_number(ExamType.PILOT, year=2027)
+        generate_exam_number(ExamCategory.PILOT, year=2026)
+        ame = generate_exam_number(ExamCategory.AME, year=2026)
+        next_year = generate_exam_number(ExamCategory.PILOT, year=2027)
         self.assertTrue(ame.endswith('00001'))
         self.assertTrue(next_year.endswith('00001'))
 
@@ -57,18 +57,18 @@ class ExamNumberTests(TestCase):
             exam_number='NCAA/PLT/2026/00001',
             receipt_number='RCP-1',
             company_name='Legacy Co',
-            exam_type=ExamType.PILOT,
+            exam_category=ExamCategory.PILOT,
             exam_date=FUTURE,
             exam_time=time(9, 0),
             venue='Hall A',
             scheduled_by=officer,
         )
         self.assertNotEqual(
-            generate_exam_number(ExamType.PILOT, year=2026), 'NCAA/PLT/2026/00001'
+            generate_exam_number(ExamCategory.PILOT, year=2026), 'NCAA/PLT/2026/00001'
         )
 
     def test_sequence_counter_is_stored_server_side(self):
-        generate_exam_number(ExamType.PILOT, year=2026)
+        generate_exam_number(ExamCategory.PILOT, year=2026)
         row = NumberSequence.objects.get(scope='exam:PLT', year=2026)
         self.assertEqual(row.last_value, 1)
 
@@ -90,7 +90,8 @@ class ManualSchedulingTests(TestCase):
             'exam_number': 'NCAA-CC-2026-777',
             'receipt_number': 'RCP-10001',
             'company_name': 'Air Peace Training Centre',
-            'exam_type': ExamType.CABIN_CREW,
+            'exam_category': ExamCategory.CABIN_CREW,
+            'paper_type': 'b737',
             'exam_date': FUTURE.isoformat(),
             'exam_time': '09:00',
             'venue': 'NCAA HQ, Abuja - Hall A',
@@ -137,7 +138,7 @@ class ManualSchedulingTests(TestCase):
             exam_number='NCAA-OLD-1',
             receipt_number='RCP-9',
             company_name='Old Co',
-            exam_type=ExamType.PILOT,
+            exam_category=ExamCategory.PILOT,
             exam_date=date.today() - timedelta(days=30),
             exam_time=time(9, 0),
             venue='Old Hall',
@@ -148,7 +149,8 @@ class ManualSchedulingTests(TestCase):
             self.payload(
                 candidate_name='Past Candidate',
                 exam_number='NCAA-OLD-1',
-                exam_type=ExamType.PILOT,
+                exam_category=ExamCategory.PILOT,
+                paper_type='general',
                 exam_date=(date.today() - timedelta(days=30)).isoformat(),
                 venue='Corrected Hall',
             ),
@@ -200,7 +202,7 @@ class ExistingViewCompatibilityTests(TestCase):
             exam_number='NCAA/PLT/2026/00001',
             receipt_number='RCP-1',
             company_name='Co',
-            exam_type=ExamType.PILOT,
+            exam_category=ExamCategory.PILOT,
             exam_date=FUTURE,
             exam_time=time(9, 0),
             venue='Hall A',
@@ -211,7 +213,7 @@ class ExistingViewCompatibilityTests(TestCase):
             exam_number='NCAA/PLT/2026/00002',
             receipt_number='RCP-2',
             company_name='Co',
-            exam_type=ExamType.PILOT,
+            exam_category=ExamCategory.PILOT,
             scheduled_by=self.officer,
         )
 

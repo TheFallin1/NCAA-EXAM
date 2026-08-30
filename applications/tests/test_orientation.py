@@ -1,7 +1,7 @@
 """Page orientation and skew correction, against genuine recognition.
 
 A scan handed in sideways used to read as noise: 25% confidence, no
-examination type, invented candidate names. These tests render a letter, turn
+examination category, invented candidate names. These tests render a letter, turn
 it, and check the pipeline puts it back the right way up and reads it.
 
 Skipped where Tesseract is not installed, so the rest of the suite still runs.
@@ -18,7 +18,7 @@ from applications.models import Application, ProcessingStatus
 from applications.services.extraction import ApplicationExtractor
 from applications.services.ocr import get_engine, read_document
 from applications.services.preprocess import upscale
-from exams.models import ExamType
+from exams.models import ExamCategory
 
 from .base import CABIN_CREW_ABINITIO_LETTER, RECEIPT_TEXT, WorkflowTestCase
 from .test_real_ocr import SKIP_REASON, rasterise, tesseract_available
@@ -66,8 +66,8 @@ class RotationRecoveryTests(WorkflowTestCase):
                 result = self.read_turned(degrees)
                 self.assertIn('CABIN CREW', result.text.upper())
                 self.assertEqual(
-                    extractor.extract_exam_type(result).exam_type,
-                    ExamType.CABIN_CREW,
+                    extractor.extract_exam_category(result).exam_category,
+                    ExamCategory.CABIN_CREW,
                 )
 
     def test_an_upside_down_page_is_turned_back(self):
@@ -85,8 +85,8 @@ class RotationRecoveryTests(WorkflowTestCase):
         for degrees in (90, 180, 270):
             with self.subTest(degrees=degrees):
                 result = self.read_turned(degrees)
-                detection = extractor.extract_exam_type(result)
-                self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+                detection = extractor.extract_exam_category(result)
+                self.assertEqual(detection.exam_category, ExamCategory.CABIN_CREW)
                 self.assertTrue(detection.contextual)
 
     def test_candidates_survive_a_sideways_scan(self):
@@ -167,8 +167,8 @@ class SuppliedApplicationTests(WorkflowTestCase):
         self.assertGreater(result.mean_confidence, 70)
 
     def test_the_examination_type_is_cabin_crew(self):
-        detection = ApplicationExtractor().extract_exam_type(self.read())
-        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+        detection = ApplicationExtractor().extract_exam_category(self.read())
+        self.assertEqual(detection.exam_category, ExamCategory.CABIN_CREW)
         self.assertEqual(detection.label, 'Cabin Crew')
         self.assertTrue(detection.contextual)
         self.assertFalse(detection.ambiguous)
@@ -176,9 +176,9 @@ class SuppliedApplicationTests(WorkflowTestCase):
     def test_the_type_rating_in_the_body_is_not_the_subject(self):
         result = self.read()
         self.assertIn('737', result.text)
-        detection = ApplicationExtractor().extract_exam_type(result)
-        self.assertNotIn(ExamType.PILOT, detection.scores)
-        self.assertNotIn(ExamType.AME, detection.scores)
+        detection = ApplicationExtractor().extract_exam_category(result)
+        self.assertNotIn(ExamCategory.PILOT, detection.scores)
+        self.assertNotIn(ExamCategory.AME, detection.scores)
 
     def test_both_candidates_are_read(self):
         names = [c.name for c in ApplicationExtractor().extract_candidates(self.read())]
@@ -199,7 +199,8 @@ class SidewaysWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
 
     def test_a_sideways_application_processes_normally(self):
         self.client.post('/applications/process/', {
-            'exam_type': 'cabin_crew',
+            'exam_category': 'cabin_crew',
+            'paper_type': 'b737',
             'application_letter': SimpleUploadedFile(
                 'letter.png',
                 turn(rasterise(CABIN_CREW_ABINITIO_LETTER, dpi=200), 90),
@@ -212,13 +213,14 @@ class SidewaysWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
 
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
-        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.detected_exam_category, ExamCategory.CABIN_CREW)
         self.assertEqual(application.extracted_candidates.count(), 2)
 
     def test_a_sideways_mismatch_is_still_caught(self):
         """Correcting the page must not weaken the match rule."""
         self.client.post('/applications/process/', {
-            'exam_type': 'pilot',
+            'exam_category': 'pilot',
+            'paper_type': 'general',
             'application_letter': SimpleUploadedFile(
                 'letter.png',
                 turn(rasterise(CABIN_CREW_ABINITIO_LETTER, dpi=200), 270),
@@ -231,7 +233,7 @@ class SidewaysWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
 
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.MISMATCH)
-        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.detected_exam_category, ExamCategory.CABIN_CREW)
 
 
 REAL_RECEIPT = Path('demo_documents/real/receipt.jpg')
@@ -329,8 +331,8 @@ class ContaminatedPageTests(WorkflowTestCase):
         result = read_document(self.build(), engine=get_engine(), hint='letter')
         self.assertIn('CABIN CREW', result.text.upper())
 
-        detection = ApplicationExtractor().extract_exam_type(result)
-        self.assertEqual(detection.exam_type, ExamType.CABIN_CREW)
+        detection = ApplicationExtractor().extract_exam_category(result)
+        self.assertEqual(detection.exam_category, ExamCategory.CABIN_CREW)
 
     def test_the_candidate_list_survives(self):
         result = read_document(self.build(), engine=get_engine(), hint='letter')
@@ -359,14 +361,15 @@ class ContaminatedPageTests(WorkflowTestCase):
 class CommaDelimitedLetterTests(ReviewHelperMixin, WorkflowTestCase):
     """The second real submission, end to end through the workflow."""
 
-    def submit(self, exam_type='cabin_crew', degrees=0):
+    def submit(self, exam_category='cabin_crew', degrees=0):
         from .base import COMMA_DELIMITED_LETTER
 
         page = rasterise(COMMA_DELIMITED_LETTER, dpi=150)
         if degrees:
             page = turn(page, degrees)
         return self.client.post('/applications/process/', {
-            'exam_type': exam_type,
+            'exam_category': exam_category,
+            'paper_type': self.default_paper(exam_category),
             'application_letter': SimpleUploadedFile(
                 'letter.png', page, content_type='image/png'
             ),
@@ -379,7 +382,7 @@ class CommaDelimitedLetterTests(ReviewHelperMixin, WorkflowTestCase):
         self.submit()
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
-        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.detected_exam_category, ExamCategory.CABIN_CREW)
         self.assertEqual(application.extracted_candidates.count(), 4)
 
     def test_the_applicant_academy_is_recorded(self):
@@ -390,5 +393,5 @@ class CommaDelimitedLetterTests(ReviewHelperMixin, WorkflowTestCase):
     def test_it_works_sideways_too(self):
         self.submit(degrees=90)
         application = Application.objects.get()
-        self.assertEqual(application.detected_exam_type, ExamType.CABIN_CREW)
+        self.assertEqual(application.detected_exam_category, ExamCategory.CABIN_CREW)
         self.assertEqual(application.extracted_candidates.count(), 4)

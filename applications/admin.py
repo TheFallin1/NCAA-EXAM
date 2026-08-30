@@ -17,10 +17,11 @@ class ExtractedCandidateInline(admin.TabularInline):
 @admin.register(Application)
 class ApplicationAdmin(admin.ModelAdmin):
     list_display = (
-        'reference', 'exam_type', 'detected_exam_type', 'receipt_number',
-        'processing_status', 'created_by', 'created_at',
+        'reference', 'exam_category', 'paper_type', 'detected_exam_category',
+        'detected_paper_type', 'receipt_number', 'processing_status',
+        'created_by', 'created_at',
     )
-    list_filter = ('processing_status', 'exam_type')
+    list_filter = ('processing_status', 'exam_category', 'paper_type')
     search_fields = ('reference', 'receipt_number', 'company_name')
     readonly_fields = ('id', 'reference', 'created_at', 'updated_at')
     inlines = [ApplicationDocumentInline, ExtractedCandidateInline]

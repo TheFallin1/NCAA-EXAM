@@ -14,11 +14,12 @@ from django.core.management.base import BaseCommand
 
 LETTERHEAD_RULE_Y = 40
 
-# (slug, exam type to select, letterhead, address, body lines)
+# (slug, the category and paper to select, letterhead, address, body lines)
 DOCUMENTS = [
     {
         'slug': '01_pilot',
         'select': 'Pilot',
+        'paper': 'General Paper',
         'company': 'SKYWAY AVIATION TRAINING ACADEMY LIMITED',
         'address': [
             '12 Airport Road, Ikeja, Lagos State',
@@ -46,6 +47,7 @@ DOCUMENTS = [
     {
         'slug': '02_flight_dispatch',
         'select': 'Flight Dispatch',
+        'paper': 'Paper 1',
         'company': 'MAX AIR DISPATCH SERVICES LIMITED',
         'address': [
             '4 Aminu Kano Crescent, Wuse II, Abuja',
@@ -67,11 +69,13 @@ DOCUMENTS = [
         'title': 'Head of Operations',
         'receipt': 'NCAA/2026/004822',
         'amount': '180,000.00',
-        'note': 'Flight Dispatch: shows the Paper 1 / Paper 2 scheduling and slip.',
+        'note': 'Flight Dispatch: the letter does not name the paper, so the '
+                'paper type is left for the officer to verify.',
     },
     {
         'slug': '03_cabin_crew',
         'select': 'Cabin Crew',
+        'paper': 'General Paper',
         'company': 'OVERLAND AIRWAYS LIMITED',
         'address': [
             'Hangar 3, Murtala Muhammed Airport, Lagos',
@@ -98,6 +102,7 @@ DOCUMENTS = [
     {
         'slug': '04_ame',
         'select': 'AME',
+        'paper': 'General Paper',
         'company': 'DANA AIRCRAFT MAINTENANCE SERVICES LIMITED',
         'address': [
             'Plot 9, Maintenance Base, Kano',
@@ -122,6 +127,7 @@ DOCUMENTS = [
     {
         'slug': '05_mismatch',
         'select': 'Pilot  (deliberately wrong)',
+        'paper': 'General Paper',
         'company': 'AERO CONTRACTORS TRAINING CENTRE',
         'address': [
             '1 Aviation Close, Ikeja, Lagos',
@@ -344,9 +350,10 @@ class Command(BaseCommand):
 
             guide.extend([
                 f"{spec['slug']}",
-                f"  Select examination type : {spec['select']}",
-                f"  Candidates in letter    : {len(spec['candidates'])}",
-                f"  Receipt number          : {spec['receipt']}",
+                f"  Examination category : {spec['select']}",
+                f"  Paper type           : {spec['paper']}",
+                f"  Candidates in letter : {len(spec['candidates'])}",
+                f"  Receipt number       : {spec['receipt']}",
                 f"  {spec['note']}",
                 '',
             ])

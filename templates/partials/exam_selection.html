@@ -1,0 +1,40 @@
+{% comment %}
+The dependent Examination Category / Paper Type pair.
+
+Rendered by hand rather than through the widgets so the Paper Type list can be
+rebuilt from the catalogue the moment the category changes. `paper_catalogue`
+is the JSON the view supplies; the same pair is validated again on the server,
+so nothing here is the only thing standing between an officer and an invalid
+combination.
+{% endcomment %}
+<div class="grid gap-5 md:grid-cols-2"
+     x-data='examSelection({{ paper_catalogue }}, "{{ form.exam_category.value|default_if_none:"" }}", "{{ form.paper_type.value|default_if_none:"" }}")'>
+  <div>
+    <label class="mb-1 block text-sm font-medium" for="id_exam_category">Examination Category *</label>
+    <select name="exam_category" id="id_exam_category" class="form-input"
+            x-model="category" x-on:change="onCategoryChange()">
+      <option value="">Select Examination Category</option>
+      {% for value, label in form.exam_category.field.choices %}{% if value %}
+      <option value="{{ value }}">{{ label }}</option>
+      {% endif %}{% endfor %}
+    </select>
+    {% if form.exam_category.errors %}<p class="mt-1 text-xs text-red-600">{{ form.exam_category.errors.0 }}</p>{% endif %}
+  </div>
+  <div>
+    <label class="mb-1 block text-sm font-medium" for="id_paper_type">Paper Type *</label>
+    {# The options are built by x-for, which runs after x-model has read the
+       select. On a re-render carrying a chosen paper -- a validation error, or
+       the edit screen -- the value is re-applied once they exist. #}
+    <select name="paper_type" id="id_paper_type" class="form-input"
+            x-model="paper" x-bind:disabled="!category"
+            x-init="$nextTick(() => { $el.value = paper })"
+            x-bind:class="category ? '' : 'cursor-not-allowed opacity-60'">
+      <option value="" x-text="placeholder()">Select Examination Category First</option>
+      <template x-for="option in papers()" x-bind:key="option.value">
+        <option x-bind:value="option.value" x-bind:selected="option.value === paper"
+                x-text="option.label"></option>
+      </template>
+    </select>
+    {% if form.paper_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_type.errors.0 }}</p>{% endif %}
+  </div>
+</div>

@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.db.models import F, Q
 from django.urls import reverse, reverse_lazy
@@ -5,11 +7,21 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from accounts.mixins import OfficerRequiredMixin
 
+from . import paper_types
 from .forms import ExamScheduleForm
-from .models import ExamSchedule, ExamType
+from .models import ExamCategory, ExamSchedule
 
 
-class ExamScheduleCreateView(OfficerRequiredMixin, CreateView):
+class _ExamSelectionContextMixin:
+    """Supplies the catalogue behind the dependent Paper Type dropdown."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['paper_catalogue'] = json.dumps(paper_types.catalogue())
+        return context
+
+
+class ExamScheduleCreateView(_ExamSelectionContextMixin, OfficerRequiredMixin, CreateView):
     model = ExamSchedule
     form_class = ExamScheduleForm
     template_name = 'exams/schedule_form.html'
@@ -34,7 +46,8 @@ class ExamListView(OfficerRequiredMixin, ListView):
     def get_queryset(self):
         qs = ExamSchedule.objects.select_related('scheduled_by')
         q = self.request.GET.get('q', '').strip()
-        exam_type = self.request.GET.get('exam_type', '')
+        exam_category = self.request.GET.get('exam_category', '')
+        paper_type = self.request.GET.get('paper_type', '')
         date_from = self.request.GET.get('date_from', '')
         date_to = self.request.GET.get('date_to', '')
         sort = self.request.GET.get('sort', '-exam_date')
@@ -45,10 +58,13 @@ class ExamListView(OfficerRequiredMixin, ListView):
                 | Q(exam_number__icontains=q)
                 | Q(receipt_number__icontains=q)
                 | Q(company_name__icontains=q)
-                | Q(exam_type__icontains=q)
+                | Q(exam_category__icontains=q)
+                | Q(paper_type__icontains=q)
             )
-        if exam_type:
-            qs = qs.filter(exam_type=exam_type)
+        if exam_category:
+            qs = qs.filter(exam_category=exam_category)
+        if paper_type:
+            qs = qs.filter(paper_type=paper_type)
         if date_from:
             qs = qs.filter(exam_date__gte=date_from)
         if date_to:
@@ -75,10 +91,16 @@ class ExamListView(OfficerRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['exam_types'] = ExamType.choices
+        ctx['exam_categories'] = ExamCategory.choices
+        # Only the papers of the selected category are offered, so the record
+        # list cannot be filtered on a combination that cannot exist.
+        ctx['paper_types'] = paper_types.choices_for(
+            self.request.GET.get('exam_category', '')
+        )
         ctx['filters'] = {
             'q': self.request.GET.get('q', ''),
-            'exam_type': self.request.GET.get('exam_type', ''),
+            'exam_category': self.request.GET.get('exam_category', ''),
+            'paper_type': self.request.GET.get('paper_type', ''),
             'date_from': self.request.GET.get('date_from', ''),
             'date_to': self.request.GET.get('date_to', ''),
             'sort': self.request.GET.get('sort', '-exam_date'),
@@ -86,7 +108,7 @@ class ExamListView(OfficerRequiredMixin, ListView):
         return ctx
 
 
-class ExamUpdateView(OfficerRequiredMixin, UpdateView):
+class ExamUpdateView(_ExamSelectionContextMixin, OfficerRequiredMixin, UpdateView):
     model = ExamSchedule
     form_class = ExamScheduleForm
     template_name = 'exams/schedule_form.html'

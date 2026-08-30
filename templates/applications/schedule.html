@@ -2,7 +2,7 @@
 
 {% block title %}Schedule {{ application.reference }} — NCAA{% endblock %}
 {% block page_heading %}Schedule Examination{% endblock %}
-{% block page_subheading %}{{ application.reference }} — {{ application.exam_type_label }}{% endblock %}
+{% block page_subheading %}{{ application.reference }} — {{ application.exam_category_label }} · {{ application.paper_type_label }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-3xl space-y-6">
@@ -33,78 +33,16 @@
   </div>
 
   <div class="card">
-    <form method="post" class="space-y-5" data-loading
-          x-data="{ shared: {% if form.share_schedule.value %}true{% else %}false{% endif %} }">
+    <form method="post" class="space-y-5" data-loading>
       {% csrf_token %}
       {% if form.non_field_errors %}
       <div class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>
       {% endif %}
 
-      {% if form.multi_paper %}
-      <div>
-        <h2 class="text-lg font-semibold">Flight Dispatch Schedule</h2>
-        <p class="mt-1 text-sm text-slate-500">
-          This examination consists of two papers. Set the schedule for each one.
-        </p>
-      </div>
-
-      <label class="flex items-center gap-2 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-800">
-        <input type="checkbox" name="share_schedule" x-model="shared"
-               class="h-4 w-4 rounded border-slate-300">
-        <span>{{ form.share_schedule.label }}</span>
-      </label>
-
-      <fieldset class="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
-        <legend class="px-2 text-sm font-semibold text-[#1A1B5D] dark:text-sky-300">Paper 1</legend>
-        <div class="grid gap-5 md:grid-cols-3">
-          <div>
-            <label class="mb-1 block text-sm font-medium">Date *</label>
-            {{ form.paper_1_exam_date }}
-            {% if form.paper_1_exam_date.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_1_exam_date.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium">Time *</label>
-            {{ form.paper_1_exam_time }}
-            {% if form.paper_1_exam_time.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_1_exam_time.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium">Venue *</label>
-            {{ form.paper_1_venue }}
-            {% if form.paper_1_venue.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_1_venue.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-      </fieldset>
-
-      <fieldset class="rounded-lg border border-slate-200 p-4 dark:border-slate-700"
-                x-show="!shared" x-cloak>
-        <legend class="px-2 text-sm font-semibold text-[#1A1B5D] dark:text-sky-300">Paper 2</legend>
-        <div class="grid gap-5 md:grid-cols-3">
-          <div>
-            <label class="mb-1 block text-sm font-medium">Date *</label>
-            {{ form.paper_2_exam_date }}
-            {% if form.paper_2_exam_date.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_2_exam_date.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium">Time *</label>
-            {{ form.paper_2_exam_time }}
-            {% if form.paper_2_exam_time.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_2_exam_time.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium">Venue *</label>
-            {{ form.paper_2_venue }}
-            {% if form.paper_2_venue.errors %}<p class="mt-1 text-xs text-red-600">{{ form.paper_2_venue.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-      </fieldset>
-
-      <p x-show="shared" x-cloak class="rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
-        Paper 2 will use the same date, time and venue as Paper 1.
-      </p>
-
-      {% else %}
       <div>
         <h2 class="text-lg font-semibold">Examination Schedule</h2>
         <p class="mt-1 text-sm text-slate-500">
+          {{ application.exam_category_label }} &mdash; {{ application.paper_type_label }}.
           This schedule applies to every candidate on the application.
         </p>
       </div>
@@ -125,7 +63,6 @@
           {% if form.venue.errors %}<p class="mt-1 text-xs text-red-600">{{ form.venue.errors.0 }}</p>{% endif %}
         </div>
       </div>
-      {% endif %}
 
       <div class="flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
         <button type="submit" class="btn-primary">Schedule &amp; Generate Slips</button>

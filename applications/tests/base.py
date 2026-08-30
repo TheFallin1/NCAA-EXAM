@@ -228,9 +228,23 @@ class WorkflowTestCase(TestCase):
             'receipt': receipt if receipt is not None else '',
         }
 
-    def submit_application(self, exam_type='pilot', letter=True, receipt=True):
-        """POST the intake form and return the response."""
-        data = {'exam_type': exam_type}
+    def default_paper(self, exam_category):
+        """The first paper configured for a category, as the dropdown offers."""
+        from exams import paper_types
+
+        choices = paper_types.choices_for(exam_category)
+        return choices[0][0] if choices else ''
+
+    def submit_application(self, exam_category='pilot', paper_type=None,
+                           letter=True, receipt=True):
+        """POST the intake form and return the response.
+
+        `paper_type` defaults to the first paper configured for the category,
+        which is what the dependent dropdown would offer.
+        """
+        if paper_type is None:
+            paper_type = self.default_paper(exam_category)
+        data = {'exam_category': exam_category, 'paper_type': paper_type}
         if letter:
             data['application_letter'] = letter_upload()
         if receipt:

@@ -254,9 +254,14 @@ OCR_PDF_TEXT_LAYER_MIN_CHARS = env.int('OCR_PDF_TEXT_LAYER_MIN_CHARS', default=5
 # Examination structure
 # ---------------------------------------------------------------------------
 EXAM_NUMBER_PREFIX = env('EXAM_NUMBER_PREFIX', default='NCAA')
-# NCAA runs Flight Dispatch Paper 1 and Paper 2 on different days, so the
-# "both papers share one schedule" option starts switched off. Officers can
-# still tick it per application if a sitting is ever combined.
-FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT = env.bool(
-    'FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT', default=False
+
+# What to do when the letter names the examination category but does not say
+# which paper. The paper is never guessed, so the choice is between:
+#   'review' -- carry on to officer verification with the paper flagged as
+#               unconfirmed, which is what NCAA asked for: many letters simply
+#               do not name the paper.
+#   'block'  -- refuse the application until a letter that states the paper is
+#               supplied.
+PAPER_TYPE_UNRESOLVED_POLICY = env(
+    'PAPER_TYPE_UNRESOLVED_POLICY', default='review'
 )

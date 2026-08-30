@@ -8,8 +8,7 @@ from django.utils import timezone
 
 from dashboard.audit import log_activity
 from dashboard.models import ActivityLog
-from exams.exam_types import has_papers
-from exams.models import ExamPaper, ExamSchedule, Paper
+from exams.models import ExamSchedule
 from exams.services import generate_exam_number
 
 from ..models import Application, ProcessingStatus
@@ -56,9 +55,8 @@ def duplicate_receipt_match(application):
 def confirm(application, request=None, override_duplicate_receipt=False):
     """Create the examination records for a verified application.
 
-    Issues one examination ID per included candidate. For Flight Dispatch an
-    unscheduled Paper 1 and Paper 2 row is created alongside each record, ready
-    for the scheduling step.
+    Issues one examination ID per included candidate, each carrying the
+    application's examination category and paper type.
     """
     if application.processing_status != ProcessingStatus.REVIEW:
         raise ConfirmationError(
@@ -100,10 +98,11 @@ def confirm(application, request=None, override_duplicate_receipt=False):
         for candidate in candidates:
             exam = ExamSchedule(
                 candidate_name=candidate.name,
-                exam_number=generate_exam_number(application.exam_type),
+                exam_number=generate_exam_number(application.exam_category),
                 receipt_number=application.receipt_number,
                 company_name=application.company_name,
-                exam_type=application.exam_type,
+                exam_category=application.exam_category,
+                paper_type=application.paper_type,
                 exam_date=None,
                 exam_time=None,
                 venue='',
@@ -112,11 +111,6 @@ def confirm(application, request=None, override_duplicate_receipt=False):
             )
             exam._request = request
             exam.save()
-
-            if has_papers(application.exam_type):
-                for paper in (Paper.PAPER_1, Paper.PAPER_2):
-                    ExamPaper.objects.create(exam=exam, paper=paper)
-
             created.append(exam)
 
             log_activity(
@@ -148,10 +142,12 @@ def confirm(application, request=None, override_duplicate_receipt=False):
         application,
         description=(
             f'{application.reference}: {len(created)} candidate(s) confirmed for '
-            f'{application.exam_type_label}'
+            f'{application.exam_category_label} - {application.paper_type_label}'
         ),
         metadata={
             'receipt_number': application.receipt_number,
+            'exam_category': application.exam_category,
+            'paper_type': application.paper_type,
             'candidates': len(created),
             'duplicate_receipt_override': bool(duplicate and override_duplicate_receipt),
         },
@@ -159,16 +155,12 @@ def confirm(application, request=None, override_duplicate_receipt=False):
     return created
 
 
-def apply_schedule(application, primary, paper_schedules=None, request=None):
-    """Write the schedule onto every examination record in the application.
+def apply_schedule(application, schedule, request=None):
+    """Write one schedule onto every examination record in the application.
 
-    `primary` is a dict of date/time/venue used for single-sitting
-    examinations. `paper_schedules` maps a Paper value to the same shape and is
-    used for Flight Dispatch, where Paper 1 and Paper 2 usually sit on
-    different days.
-
-    For multi-paper examinations the parent record mirrors Paper 1 so the
-    dashboard, calendar and record list keep working from a single date field.
+    An application covers one paper of one category, so there is a single
+    date, time and venue: Flight Dispatch Paper 1 and Paper 2 are scheduled as
+    the separate examinations they are, on their own applications.
     """
     if application.processing_status not in (
         ProcessingStatus.CONFIRMED,
@@ -182,32 +174,11 @@ def apply_schedule(application, primary, paper_schedules=None, request=None):
     if not exams:
         raise ConfirmationError('This application has no examination records.')
 
-    multi_paper = has_papers(application.exam_type)
-
     with transaction.atomic():
         for exam in exams:
-            if multi_paper:
-                for paper in exam.papers.all():
-                    values = (paper_schedules or {}).get(paper.paper)
-                    if not values:
-                        continue
-                    paper.exam_date = values['exam_date']
-                    paper.exam_time = values['exam_time']
-                    paper.venue = values['venue']
-                    paper._request = request
-                    paper.save()
-
-                first = exam.papers.filter(paper=Paper.PAPER_1).first()
-                mirror = first or exam.papers.first()
-                if mirror is not None:
-                    exam.exam_date = mirror.exam_date
-                    exam.exam_time = mirror.exam_time
-                    exam.venue = mirror.venue
-            else:
-                exam.exam_date = primary['exam_date']
-                exam.exam_time = primary['exam_time']
-                exam.venue = primary['venue']
-
+            exam.exam_date = schedule['exam_date']
+            exam.exam_time = schedule['exam_time']
+            exam.venue = schedule['venue']
             exam._request = request
             exam.save()
 
@@ -223,8 +194,12 @@ def apply_schedule(application, primary, paper_schedules=None, request=None):
         application,
         description=(
             f'{application.reference}: {len(exams)} examination(s) scheduled for '
-            f'{application.exam_type_label}'
+            f'{application.exam_category_label} - {application.paper_type_label}'
         ),
-        metadata={'candidates': len(exams), 'multi_paper': multi_paper},
+        metadata={
+            'candidates': len(exams),
+            'exam_category': application.exam_category,
+            'paper_type': application.paper_type,
+        },
     )
     return exams

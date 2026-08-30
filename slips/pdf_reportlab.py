@@ -99,8 +99,11 @@ def _slip_elements(exam, doc, styles, context):
     )
 
     banner_text = 'EXAMINATION SLIP'
+    # `has_papers` is true only for records written under the old model, where
+    # one examination covered several papers. Everything issued now names the
+    # single paper it is for, in the detail table below.
     if exam.has_papers:
-        banner_text = f'{exam.get_exam_type_display().upper()} EXAMINATION SLIP'
+        banner_text = f'{exam.get_exam_category_display().upper()} EXAMINATION SLIP'
     banner = Table(
         [[Paragraph(banner_text, styles['Banner'])]], colWidths=[doc.width]
     )
@@ -118,7 +121,8 @@ def _slip_elements(exam, doc, styles, context):
         ('Exam Number', exam.exam_number),
         ('Receipt Number', exam.receipt_number),
         ('Company', exam.company_name),
-        ('Exam Type', exam.get_exam_type_display()),
+        ('Exam Category', exam.get_exam_category_display()),
+        ('Paper', exam.paper_type_label or 'Not specified'),
     ]
     if not exam.has_papers:
         rows.extend([
@@ -150,7 +154,8 @@ def _slip_elements(exam, doc, styles, context):
     ]))
     elements.append(detail_table)
 
-    # Flight Dispatch sits two papers, each with its own schedule.
+    # Legacy multi-paper records carry their schedule per paper rather than on
+    # the record itself.
     if exam.has_papers:
         elements.append(Spacer(1, 4 * mm))
         for paper in exam.papers.all():
@@ -176,7 +181,11 @@ def _slip_elements(exam, doc, styles, context):
 
 
 def _paper_block(paper, doc, styles):
-    """A bordered block showing one paper's date, time and venue."""
+    """A bordered block showing one paper's date, time and venue.
+
+    Only reached for legacy records. A current record has one paper and one
+    schedule, both shown in the detail table.
+    """
     rows = [
         [Paragraph(paper.get_paper_display(), styles['PaperTitle']), ''],
         [

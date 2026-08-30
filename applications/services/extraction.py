@@ -1,7 +1,7 @@
 """Information extraction.
 
 OCR yields text; it does not know which of that text is a candidate name, an
-examination type, or a receipt number. This module is the layer that decides,
+examination category, or a receipt number. This module is the layer that decides,
 using explicit rules rather than a model, so that every decision is inspectable
 and every rejection can be explained to the officer.
 
@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
-from exams import exam_types
+from exams import exam_categories, paper_types
 
 # ---------------------------------------------------------------------------
 # Vocabulary
@@ -147,9 +147,18 @@ def _matches_any(text, patterns):
 class ApplicationExtractor:
     """Reads the application letter."""
 
-    def extract_exam_type(self, ocr_result):
-        """Detect the examination type the letter is written for."""
-        return exam_types.detect(ocr_result.text)
+    def extract_exam_category(self, ocr_result):
+        """Detect the examination category the letter is written for."""
+        return exam_categories.detect(ocr_result.text)
+
+    def extract_paper_type(self, ocr_result, exam_category):
+        """Detect which paper of `exam_category` the letter is written for.
+
+        Returns a detection with no paper where the letter does not say. Many
+        letters genuinely do not, and inventing one would schedule a candidate
+        for the wrong paper.
+        """
+        return paper_types.detect(ocr_result.text, exam_category)
 
     def extract_candidates(self, ocr_result):
         """Pull candidate names out of the letter.

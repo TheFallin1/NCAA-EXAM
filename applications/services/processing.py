@@ -6,12 +6,13 @@ tables for the officer to verify first.
 """
 import logging
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from dashboard.audit import log_activity
 from dashboard.models import ActivityLog
-from exams import exam_types
+from exams import exam_categories, paper_types
 from exams.models import ExamSchedule
 
 from ..models import DocumentKind, ExtractedCandidate, ProcessingStatus
@@ -19,6 +20,32 @@ from .extraction import ApplicationExtractor, ReceiptExtractor
 from .ocr import OCRError, get_engine, read_document
 
 logger = logging.getLogger(__name__)
+
+# The wording an officer sees when a check fails. Kept here so the message is
+# the same whether it reaches them through the screen or the audit trail.
+CATEGORY_MISMATCH_MESSAGE = (
+    'Examination category selected by the officer does not match the '
+    'examination category detected in the application.'
+)
+PAPER_MISMATCH_MESSAGE = (
+    'Paper type selected by the officer does not match the paper type '
+    'detected in the application.'
+)
+PAPER_UNRESOLVED_MESSAGE = (
+    'Paper type could not be determined from the application. Please verify '
+    'the paper type.'
+)
+
+CATEGORY_FIELDS = [
+    'detected_exam_category',
+    'detected_exam_category_evidence',
+    'detected_exam_category_ambiguous',
+]
+PAPER_FIELDS = [
+    'detected_paper_type',
+    'detected_paper_type_evidence',
+    'detected_paper_type_ambiguous',
+]
 
 
 class DocumentProcessor:
@@ -107,61 +134,114 @@ class DocumentProcessor:
             },
         )
 
-        # -- examination type: detect, then compare with the officer ------
-        detection = self.application_extractor.extract_exam_type(letter_result)
-        application.detected_exam_type = detection.exam_type or ''
-        application.detected_exam_type_evidence = (detection.evidence or '')[:255]
-        application.detected_exam_type_ambiguous = detection.ambiguous
+        # -- examination category: detect, then compare with the officer ------
+        detection = self.application_extractor.extract_exam_category(letter_result)
+        application.detected_exam_category = detection.exam_category or ''
+        application.detected_exam_category_evidence = (detection.evidence or '')[:255]
+        application.detected_exam_category_ambiguous = detection.ambiguous
 
         if not detection.detected:
             self._block(
                 application,
                 ProcessingStatus.MISMATCH,
-                'The examination type could not be determined from the '
+                'The examination category could not be determined from the '
                 'application letter, so it cannot be checked against your '
                 'selection. Verify the letter and rescan it if necessary.',
-                extra_fields=[
-                    'detected_exam_type',
-                    'detected_exam_type_evidence',
-                    'detected_exam_type_ambiguous',
-                ],
+                extra_fields=CATEGORY_FIELDS,
             )
             log_activity(
                 request,
-                ActivityLog.Action.EXAM_TYPE_MISMATCH,
+                ActivityLog.Action.EXAM_CATEGORY_MISMATCH,
                 application,
-                description=f'{application.reference}: no examination type detected',
-                metadata={'officer_selected': application.exam_type, 'detected': None},
+                description=f'{application.reference}: no examination category detected',
+                metadata={'officer_selected': application.exam_category, 'detected': None},
             )
             return application
 
-        if not exam_types.matches(application.exam_type, detection.exam_type):
+        if not exam_categories.matches(application.exam_category, detection.exam_category):
             self._block(
                 application,
                 ProcessingStatus.MISMATCH,
-                '',
-                extra_fields=[
-                    'detected_exam_type',
-                    'detected_exam_type_evidence',
-                    'detected_exam_type_ambiguous',
-                ],
+                CATEGORY_MISMATCH_MESSAGE,
+                extra_fields=CATEGORY_FIELDS,
             )
             log_activity(
                 request,
-                ActivityLog.Action.EXAM_TYPE_MISMATCH,
+                ActivityLog.Action.EXAM_CATEGORY_MISMATCH,
                 application,
                 description=(
                     f'{application.reference}: officer selected '
-                    f'{application.exam_type_label}, letter states '
-                    f'{application.detected_exam_type_label}'
+                    f'{application.exam_category_label}, letter states '
+                    f'{application.detected_exam_category_label}'
                 ),
                 metadata={
-                    'officer_selected': application.exam_type,
-                    'detected': detection.exam_type,
+                    'officer_selected': application.exam_category,
+                    'detected': detection.exam_category,
                     'evidence': detection.evidence,
                 },
             )
             return application
+
+        # -- paper type: detect within the agreed category ------------------
+        paper_detection = self.application_extractor.extract_paper_type(
+            letter_result, detection.exam_category
+        )
+        application.detected_paper_type = paper_detection.paper_type or ''
+        application.detected_paper_type_evidence = (paper_detection.evidence or '')[:255]
+        application.detected_paper_type_ambiguous = paper_detection.ambiguous
+
+        if paper_detection.detected:
+            if not paper_types.matches(
+                application.paper_type, paper_detection.paper_type
+            ):
+                self._block(
+                    application,
+                    ProcessingStatus.PAPER_MISMATCH,
+                    PAPER_MISMATCH_MESSAGE,
+                    extra_fields=CATEGORY_FIELDS + PAPER_FIELDS,
+                )
+                log_activity(
+                    request,
+                    ActivityLog.Action.PAPER_TYPE_MISMATCH,
+                    application,
+                    description=(
+                        f'{application.reference}: officer selected '
+                        f'{application.paper_type_label}, letter states '
+                        f'{application.detected_paper_type_label}'
+                    ),
+                    metadata={
+                        'exam_category': application.exam_category,
+                        'officer_selected': application.paper_type,
+                        'detected': paper_detection.paper_type,
+                        'evidence': paper_detection.evidence,
+                    },
+                )
+                return application
+        else:
+            # The letter names the category but not the paper. Nothing is
+            # guessed; what happens next is the configured business rule.
+            log_activity(
+                request,
+                ActivityLog.Action.PAPER_TYPE_UNRESOLVED,
+                application,
+                description=(
+                    f'{application.reference}: the paper type could not be '
+                    f'determined; officer selected {application.paper_type_label}'
+                ),
+                metadata={
+                    'exam_category': application.exam_category,
+                    'officer_selected': application.paper_type,
+                    'ambiguous': paper_detection.ambiguous,
+                },
+            )
+            if self._blocks_unresolved_paper():
+                self._block(
+                    application,
+                    ProcessingStatus.PAPER_MISMATCH,
+                    PAPER_UNRESOLVED_MESSAGE,
+                    extra_fields=CATEGORY_FIELDS + PAPER_FIELDS,
+                )
+                return application
 
         # -- candidates ----------------------------------------------------
         candidates = self.application_extractor.extract_candidates(letter_result)
@@ -172,11 +252,7 @@ class DocumentProcessor:
                 'No candidate names could be read from the application letter. '
                 'Check that the letter lists the candidates, and rescan it at a '
                 'higher quality if the text is faint.',
-                extra_fields=[
-                    'detected_exam_type',
-                    'detected_exam_type_evidence',
-                    'detected_exam_type_ambiguous',
-                ],
+                extra_fields=CATEGORY_FIELDS + PAPER_FIELDS,
             )
             return application
 
@@ -200,6 +276,16 @@ class DocumentProcessor:
         return application
 
     # -- helpers -----------------------------------------------------------
+    def _blocks_unresolved_paper(self):
+        """Whether an undetermined paper type stops the application.
+
+        NCAA's letters often name only the category, so the default is to
+        carry on and let the officer confirm the paper. A deployment that
+        needs the letter to state the paper sets the policy to "block".
+        """
+        policy = (settings.PAPER_TYPE_UNRESOLVED_POLICY or '').strip().lower()
+        return policy == 'block'
+
     def _read(self, document, engine):
         """OCR one document and persist the result onto it."""
         result = read_document(document.file.path, engine=engine, hint=document.kind)
@@ -238,7 +324,7 @@ class DocumentProcessor:
         return (
             ExamSchedule.objects.filter(
                 candidate_name__iexact=name.strip(),
-                exam_type=application.exam_type,
+                exam_category=application.exam_category,
             )
             .order_by('-created_at')
             .first()

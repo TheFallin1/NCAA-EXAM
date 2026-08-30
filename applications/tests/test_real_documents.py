@@ -79,8 +79,8 @@ class RealPdfReadingTests(WorkflowTestCase):
     def test_the_examination_type_extracts_from_a_real_pdf(self):
         from applications.services.extraction import ApplicationExtractor
 
-        detection = ApplicationExtractor().extract_exam_type(self.read(PILOT_LETTER))
-        self.assertEqual(detection.exam_type, 'pilot')
+        detection = ApplicationExtractor().extract_exam_category(self.read(PILOT_LETTER))
+        self.assertEqual(detection.exam_category, 'pilot')
 
     def test_the_receipt_number_extracts_from_a_real_pdf(self):
         from applications.services.extraction import ReceiptExtractor
@@ -105,9 +105,10 @@ class RealPdfReadingTests(WorkflowTestCase):
 class RealDocumentWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
     """Scenario A again, but driven by real PDF files."""
 
-    def submit_real(self, exam_type='pilot', letter=PILOT_LETTER, receipt=RECEIPT_TEXT):
+    def submit_real(self, exam_category='pilot', letter=PILOT_LETTER, receipt=RECEIPT_TEXT):
         return self.client.post('/applications/process/', {
-            'exam_type': exam_type,
+            'exam_category': exam_category,
+            'paper_type': self.default_paper(exam_category),
             'application_letter': SimpleUploadedFile(
                 'letter.pdf', build_pdf(letter), content_type='application/pdf'
             ),
@@ -121,7 +122,7 @@ class RealDocumentWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
         application = Application.objects.get()
 
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
-        self.assertEqual(application.detected_exam_type, 'pilot')
+        self.assertEqual(application.detected_exam_category, 'pilot')
         self.assertEqual(application.receipt_number, 'NCAA/2026/004821')
         self.assertEqual(application.extracted_candidates.count(), 5)
         self.assertTrue(application.letter.used_text_layer)
@@ -143,25 +144,24 @@ class RealDocumentWorkflowTests(ReviewHelperMixin, WorkflowTestCase):
     def test_a_mismatch_is_caught_on_real_files(self):
         from .base import CABIN_CREW_LETTER
 
-        self.submit_real(exam_type='pilot', letter=CABIN_CREW_LETTER)
+        self.submit_real(exam_category='pilot', letter=CABIN_CREW_LETTER)
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.MISMATCH)
-        self.assertEqual(application.detected_exam_type, 'cabin_crew')
+        self.assertEqual(application.detected_exam_category, 'cabin_crew')
 
     def test_flight_dispatch_runs_on_real_files(self):
         from .base import FLIGHT_DISPATCH_LETTER
 
-        self.submit_real(exam_type='flight_dispatch', letter=FLIGHT_DISPATCH_LETTER)
+        self.submit_real(exam_category='flight_dispatch', letter=FLIGHT_DISPATCH_LETTER)
         application = Application.objects.get()
         self.assertEqual(application.processing_status, ProcessingStatus.REVIEW)
 
         self.post_review(application)
         self.client.post(
-            f'/applications/{application.pk}/schedule/',
-            self.schedule_data(multi_paper=True, shared=False),
+            f'/applications/{application.pk}/schedule/', self.schedule_data()
         )
 
         application.refresh_from_db()
         self.assertEqual(application.processing_status, ProcessingStatus.SCHEDULED)
         for exam in application.exam_records.all():
-            self.assertEqual(exam.papers.count(), 2)
+            self.assertEqual(exam.paper_type, 'paper_1')

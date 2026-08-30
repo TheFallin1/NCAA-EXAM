@@ -2,7 +2,7 @@
 
 {% block title %}Review {{ application.reference }} — NCAA{% endblock %}
 {% block page_heading %}Application Processing Review{% endblock %}
-{% block page_subheading %}{{ application.reference }} — {{ application.exam_type_label }}{% endblock %}
+{% block page_subheading %}{{ application.reference }} — {{ application.exam_category_label }} · {{ application.paper_type_label }}{% endblock %}
 
 {% block content %}
 <div class="mx-auto max-w-4xl space-y-6">
@@ -23,34 +23,78 @@
   </div>
   {% endif %}
 
-  {# ---------- Examination type mismatch: processing is blocked ---------- #}
+  {# ---------- Examination category mismatch: processing is blocked ---------- #}
   {% if application.processing_status == 'mismatch' %}
   <div class="card border-l-4 border-l-red-600">
-    <h2 class="text-lg font-bold text-red-700">Examination Type Mismatch</h2>
+    <h2 class="text-lg font-bold text-red-700">Examination Category Mismatch</h2>
     <dl class="mt-4 space-y-2 text-sm">
       <div class="flex gap-4">
         <dt class="w-56 font-semibold text-slate-500">Selected by Officer</dt>
-        <dd class="font-medium">{{ application.exam_type_label }}</dd>
+        <dd class="font-medium">{{ application.exam_category_label }}</dd>
       </div>
       <div class="flex gap-4">
         <dt class="w-56 font-semibold text-slate-500">Detected from Application</dt>
-        <dd class="font-medium">{{ application.detected_exam_type_label|default:"Not detected" }}</dd>
+        <dd class="font-medium">{{ application.detected_exam_category_label|default:"Not detected" }}</dd>
       </div>
-      {% if application.detected_exam_type_evidence %}
+      {% if application.detected_exam_category_evidence %}
       <div class="flex gap-4">
         <dt class="w-56 font-semibold text-slate-500">Text found in letter</dt>
-        <dd class="italic text-slate-600 dark:text-slate-300">&ldquo;{{ application.detected_exam_type_evidence }}&rdquo;</dd>
+        <dd class="italic text-slate-600 dark:text-slate-300">&ldquo;{{ application.detected_exam_category_evidence }}&rdquo;</dd>
       </div>
       {% endif %}
     </dl>
     <p class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
       {% if application.error_message %}{{ application.error_message }}{% else %}
-      The application cannot be processed until the examination type is verified and corrected.
+      The application cannot be processed until the examination category is verified and corrected.
       {% endif %}
     </p>
     <p class="mt-3 text-xs text-slate-500">
-      Check that the correct letter was scanned and that the right examination type was selected,
+      Check that the correct letter was scanned and that the right examination category was selected,
       then start the application again with the correct details.
+    </p>
+    <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
+      <a href="{% url 'applications:process' %}" class="btn-primary">Start Again</a>
+      <form method="post" action="{% url 'applications:retry' application.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary">Re-read Documents</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---------- Paper type mismatch or undetermined: processing is blocked ---------- #}
+  {% if application.processing_status == 'paper_mismatch' %}
+  <div class="card border-l-4 border-l-red-600">
+    <h2 class="text-lg font-bold text-red-700">
+      {% if application.paper_type_determined %}Paper Type Mismatch{% else %}Paper Type Not Determined{% endif %}
+    </h2>
+    <dl class="mt-4 space-y-2 text-sm">
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Examination Category</dt>
+        <dd class="font-medium">{{ application.exam_category_label }}</dd>
+      </div>
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Paper Selected by Officer</dt>
+        <dd class="font-medium">{{ application.paper_type_label }}</dd>
+      </div>
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Paper Detected from Application</dt>
+        <dd class="font-medium">{{ application.detected_paper_type_label|default:"Unable to determine" }}</dd>
+      </div>
+      {% if application.detected_paper_type_evidence %}
+      <div class="flex gap-4">
+        <dt class="w-56 font-semibold text-slate-500">Text found in letter</dt>
+        <dd class="italic text-slate-600 dark:text-slate-300">&ldquo;{{ application.detected_paper_type_evidence }}&rdquo;</dd>
+      </div>
+      {% endif %}
+    </dl>
+    <p class="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ application.error_message }}</p>
+    <p class="mt-3 text-xs text-slate-500">
+      Review the document and start the application again with the correct paper type.
+      {% if not application.paper_type_determined %}
+      The letter states the examination category but not the paper; the paper is never
+      assumed from a passing mention.
+      {% endif %}
     </p>
     <div class="mt-5 flex flex-wrap gap-3 border-t border-slate-200 pt-5 dark:border-slate-700">
       <a href="{% url 'applications:process' %}" class="btn-primary">Start Again</a>
@@ -90,30 +134,49 @@
         {{ review_form.company_name }}
         <p class="mt-1 text-xs text-slate-500">Read from the letterhead. Correct it if the wrong organisation was picked up.</p>
       </div>
-      <div class="mt-5 grid gap-4 sm:grid-cols-3">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Officer Selected</p>
-          <p class="mt-1 font-medium">{{ application.exam_type_label }}</p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">OCR Detected</p>
-          <p class="mt-1 font-medium">{{ application.detected_exam_type_label }}</p>
-        </div>
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
-          <p class="mt-1 font-semibold text-emerald-600">&check; Match</p>
-        </div>
+      <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th class="py-2"></th>
+              <th class="py-2">Officer Selected</th>
+              <th class="py-2">OCR Detected</th>
+              <th class="py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b border-slate-100 dark:border-slate-700">
+              <td class="py-2 font-semibold text-slate-500">Examination Category</td>
+              <td class="py-2 font-medium">{{ application.exam_category_label }}</td>
+              <td class="py-2 font-medium">{{ application.detected_exam_category_label }}</td>
+              <td class="py-2 font-semibold text-emerald-600">&check; Match</td>
+            </tr>
+            <tr>
+              <td class="py-2 font-semibold text-slate-500">Paper Type</td>
+              <td class="py-2 font-medium">{{ application.paper_type_label }}</td>
+              <td class="py-2 font-medium">
+                {% if application.paper_type_determined %}{{ application.detected_paper_type_label }}
+                {% else %}<span class="text-amber-700">Unable to determine</span>{% endif %}
+              </td>
+              <td class="py-2 font-semibold">
+                {% if application.paper_type_determined %}<span class="text-emerald-600">&check; Match</span>
+                {% else %}<span class="text-amber-700">&#9888; Verify</span>{% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      {% if application.detected_exam_type_ambiguous %}
+      {% if not application.paper_type_determined %}
       <p class="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-        The letter mentions more than one examination category. The type above matches your
-        selection, but please confirm the letter is for {{ application.exam_type_label }} before continuing.
+        Paper type could not be determined from the application. Please verify the paper type.
+        You selected <strong>{{ application.paper_type_label }}</strong> &mdash; open the application
+        letter below and confirm that is the paper it applies for before continuing.
       </p>
       {% endif %}
-      {% if application.has_papers %}
-      <p class="mt-4 rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
-        Flight Dispatch consists of Paper 1 and Paper 2. You will set the schedule for each paper
-        in the next step.
+      {% if application.detected_exam_category_ambiguous %}
+      <p class="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+        The letter mentions more than one examination category. The type above matches your
+        selection, but please confirm the letter is for {{ application.exam_category_label }} before continuing.
       </p>
       {% endif %}
     </div>

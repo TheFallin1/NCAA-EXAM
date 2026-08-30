@@ -10,7 +10,7 @@ from .test_workflow import ReviewHelperMixin
 
 class SlipContentTests(ReviewHelperMixin, WorkflowTestCase):
     def scheduled_application(self):
-        self.submit_application(exam_type='pilot')
+        self.submit_application(exam_category='pilot')
         application = Application.objects.get()
         self.post_review(application)
         self.client.post(
@@ -101,78 +101,60 @@ class SlipContentTests(ReviewHelperMixin, WorkflowTestCase):
                 self.assertIn('/accounts/login/', response['Location'])
 
 
-class FlightDispatchSlipTests(ReviewHelperMixin, WorkflowTestCase):
+class PaperOnTheSlipTests(ReviewHelperMixin, WorkflowTestCase):
+    """The slip must state the paper as well as the category."""
+
     letter_text = FLIGHT_DISPATCH_LETTER
 
-    def scheduled_application(self, shared=False):
-        self.submit_application(exam_type='flight_dispatch')
+    def scheduled_application(self, paper_type='paper_2'):
+        self.submit_application(
+            exam_category='flight_dispatch', paper_type=paper_type
+        )
         application = Application.objects.get()
         self.post_review(application)
         self.client.post(
-            f'/applications/{application.pk}/schedule/',
-            self.schedule_data(multi_paper=True, shared=shared),
+            f'/applications/{application.pk}/schedule/', self.schedule_data()
         )
         application.refresh_from_db()
         return application
 
-    def test_slip_shows_both_papers_with_their_own_schedule(self):
+    def test_slip_shows_the_category_and_the_paper(self):
         application = self.scheduled_application()
         exam = application.exam_records.first()
 
         response = self.client.get(f'/slips/{exam.pk}/')
-        self.assertContains(response, 'Paper 1')
+        self.assertContains(response, 'Flight Dispatch')
         self.assertContains(response, 'Paper 2')
         self.assertContains(response, 'Hall A')
-        self.assertContains(response, 'Hall B')
-        self.assertContains(response, 'March 15, 2027')
-        self.assertContains(response, 'March 17, 2027')
 
-    def test_slip_shows_both_papers_when_they_share_a_sitting(self):
-        application = self.scheduled_application(shared=True)
+    def test_the_paper_is_never_omitted(self):
+        application = self.scheduled_application(paper_type='paper_1')
         exam = application.exam_records.first()
 
         response = self.client.get(f'/slips/{exam.pk}/')
+        self.assertContains(response, '>Paper<')
         self.assertContains(response, 'Paper 1')
-        self.assertContains(response, 'Paper 2')
-        self.assertContains(response, 'Hall A')
 
-    def test_flight_dispatch_pdf_renders(self):
+    def test_the_batch_slip_shows_the_paper(self):
+        application = self.scheduled_application()
+        response = self.client.get(f'/slips/application/{application.pk}/')
+        self.assertContains(response, 'Paper 2')
+
+    def test_pdf_renders_with_the_paper(self):
         application = self.scheduled_application()
         exam = application.exam_records.first()
-        pdf = render_slip_pdf(exam, request=None)
-        self.assertTrue(pdf.startswith(b'%PDF'))
+        self.assertTrue(render_slip_pdf(exam, request=None).startswith(b'%PDF'))
 
-    def test_flight_dispatch_batch_pdf_renders(self):
+    def test_batch_pdf_renders(self):
         application = self.scheduled_application()
         pdf = render_slips_pdf(list(application.exam_records.all()), request=None)
         self.assertTrue(pdf.startswith(b'%PDF'))
-
-    def test_single_sitting_slip_has_no_paper_blocks(self):
-        self.set_ocr_text(
-            letter="""SKY ACADEMY
-APPLICATION FOR PILOT EXAMINATION
-We submit the following candidates:
-1. JOHN ADEWALE
-Yours faithfully,""",
-            receipt=self.receipt_text,
-        )
-        self.submit_application(exam_type='pilot')
-        application = Application.objects.order_by('-created_at').first()
-        self.post_review(application, receipt_number='NCAA/2026/007777')
-        self.client.post(
-            f'/applications/{application.pk}/schedule/', self.schedule_data()
-        )
-
-        exam = application.exam_records.get()
-        self.assertEqual(exam.papers.count(), 0)
-        response = self.client.get(f'/slips/{exam.pk}/')
-        self.assertNotContains(response, 'Paper 1')
 
 
 class UnscheduledSlipTests(ReviewHelperMixin, WorkflowTestCase):
     def test_a_confirmed_but_unscheduled_slip_says_so(self):
         """An examination ID exists before a date does; the slip must cope."""
-        self.submit_application(exam_type='pilot')
+        self.submit_application(exam_category='pilot')
         application = Application.objects.get()
         self.post_review(application)
 
@@ -182,7 +164,7 @@ class UnscheduledSlipTests(ReviewHelperMixin, WorkflowTestCase):
         self.assertContains(response, 'To be advised')
 
     def test_an_unscheduled_slip_still_renders_as_pdf(self):
-        self.submit_application(exam_type='pilot')
+        self.submit_application(exam_category='pilot')
         application = Application.objects.get()
         self.post_review(application)
 

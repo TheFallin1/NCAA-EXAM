@@ -193,16 +193,22 @@ class OfficerToggleActiveView(SystemAdminRequiredMixin, View):
 class ExportExamsCSVView(OfficerRequiredMixin, View):
     def get(self, request):
         qs = ExamSchedule.objects.select_related('scheduled_by').order_by('-exam_date')
-        exam_type = request.GET.get('exam_type', '')
-        if exam_type:
-            qs = qs.filter(exam_type=exam_type)
+        exam_category = request.GET.get('exam_category', '')
+        paper_type = request.GET.get('paper_type', '')
+        if exam_category:
+            qs = qs.filter(exam_category=exam_category)
+        # Reporting works on either half of the selection, which is the point
+        # of storing them apart.
+        if paper_type:
+            qs = qs.filter(paper_type=paper_type)
 
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="ncaa_exam_records.csv"'
         writer = csv.writer(response)
         writer.writerow([
-            'Candidate', 'Exam Number', 'Receipt', 'Company', 'Type',
-            'Date', 'Time', 'Venue', 'Officer', 'Created',
+            'Candidate', 'Exam Number', 'Receipt', 'Company',
+            'Exam Category', 'Paper', 'Date', 'Time', 'Venue', 'Officer',
+            'Created',
         ])
         for obj in qs:
             writer.writerow([
@@ -210,7 +216,8 @@ class ExportExamsCSVView(OfficerRequiredMixin, View):
                 obj.exam_number,
                 obj.receipt_number,
                 obj.company_name,
-                obj.get_exam_type_display(),
+                obj.get_exam_category_display(),
+                obj.paper_type_label,
                 obj.exam_date,
                 obj.exam_time,
                 obj.venue,

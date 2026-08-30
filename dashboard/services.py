@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.db.models import Count
 from django.utils import timezone
 
-from exams.models import ExamSchedule, ExamType
+from exams.models import ExamCategory, ExamSchedule
 
 
 def get_dashboard_stats():
@@ -19,15 +19,15 @@ def get_dashboard_stats():
     ).count()
 
     by_type = (
-        base_qs.values('exam_type')
+        base_qs.values('exam_category')
         .annotate(count=Count('id'))
-        .order_by('exam_type')
+        .order_by('exam_category')
     )
-    type_labels = dict(ExamType.choices)
+    type_labels = dict(ExamCategory.choices)
     chart_labels = []
     chart_data = []
     for row in by_type:
-        chart_labels.append(type_labels.get(row['exam_type'], row['exam_type']))
+        chart_labels.append(type_labels.get(row['exam_category'], row['exam_category']))
         chart_data.append(row['count'])
 
     recent = (

@@ -3,7 +3,7 @@
 
 {% block title %}Slips for {{ application.reference }} — NCAA{% endblock %}
 {% block page_heading %}Examination Slips{% endblock %}
-{% block page_subheading %}{{ application.reference }} — {{ application.exam_type_label }}{% endblock %}
+{% block page_subheading %}{{ application.reference }} — {{ application.exam_category_label }} · {{ application.paper_type_label }}{% endblock %}
 
 {% block content %}
 <div class="no-print mb-6 flex flex-wrap gap-3">
@@ -50,7 +50,7 @@
         <p class="text-xs text-slate-500">Aviation Examination Scheduling System</p>
       </div>
       <div class="my-4 rounded bg-[#1A1B5D] py-2 text-center text-sm font-bold text-white">
-        {% if slip.exam.has_papers %}{{ slip.exam.get_exam_type_display|upper }} EXAMINATION SLIP{% else %}EXAMINATION SLIP{% endif %}
+        {% if slip.exam.has_papers %}{{ slip.exam.get_exam_category_display|upper }} EXAMINATION SLIP{% else %}EXAMINATION SLIP{% endif %}
       </div>
 
       <dl class="space-y-2 text-sm">
@@ -58,7 +58,8 @@
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_number }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.receipt_number }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.company_name }}</dd></div>
-        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Type</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.get_exam_type_display }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Category</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.get_exam_category_display }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Paper</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.paper_type_label|default:"Not specified" }}</dd></div>
         {% if not slip.exam.has_papers %}
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Date</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_date|default:"To be advised" }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Time</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_time|default:"To be advised" }}</dd></div>

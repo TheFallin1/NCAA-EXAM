@@ -56,7 +56,7 @@
         <tr class="border-b border-slate-100 dark:border-slate-700">
           <td class="py-2 font-medium">{{ exam.candidate_name }}</td>
           <td>{{ exam.exam_number }}</td>
-          <td>{{ exam.get_exam_type_display }}</td>
+          <td>{{ exam.get_exam_category_display }}{% if exam.paper_type_label %} &middot; {{ exam.paper_type_label }}{% endif %}</td>
           <td>{{ exam.exam_date }}</td>
           <td><a href="{% url 'slips:detail' exam.pk %}" class="text-sky-600">Slip</a></td>
         </tr>

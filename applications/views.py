@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.contrib import messages
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
@@ -9,7 +11,7 @@ from django.views.generic import ListView
 from accounts.mixins import OfficerRequiredMixin
 from dashboard.audit import log_activity
 from dashboard.models import ActivityLog
-from exams.models import Paper
+from exams import paper_types
 
 from .forms import (
     CandidateReviewFormSet,
@@ -62,20 +64,22 @@ class ApplicationListView(OfficerRequiredMixin, ListView):
 
 
 class ProcessApplicationView(OfficerRequiredMixin, View):
-    """Step 1: select the examination type and provide both documents."""
+    """Step 1: select the examination category and paper, and provide both
+    documents."""
 
     template_name = 'applications/process_application.html'
 
     def get(self, request):
-        return render(request, self.template_name, {'form': ProcessApplicationForm()})
+        return render(request, self.template_name, self._context(ProcessApplicationForm()))
 
     def post(self, request):
         form = ProcessApplicationForm(request.POST, request.FILES)
         if not form.is_valid():
-            return render(request, self.template_name, {'form': form})
+            return render(request, self.template_name, self._context(form))
 
         application = Application.objects.create(
-            exam_type=form.cleaned_data['exam_type'],
+            exam_category=form.cleaned_data['exam_category'],
+            paper_type=form.cleaned_data['paper_type'],
             created_by=request.user,
         )
         log_activity(
@@ -84,8 +88,12 @@ class ProcessApplicationView(OfficerRequiredMixin, View):
             application,
             description=(
                 f'{application.reference}: processing started for '
-                f'{application.exam_type_label}'
+                f'{application.exam_category_label} - {application.paper_type_label}'
             ),
+            metadata={
+                'exam_category': application.exam_category,
+                'paper_type': application.paper_type,
+            },
         )
 
         self._store(request, application, DocumentKind.LETTER, form.cleaned_data['application_letter'])
@@ -93,6 +101,14 @@ class ProcessApplicationView(OfficerRequiredMixin, View):
 
         queue_application(application, request=request)
         return redirect('applications:review', pk=application.pk)
+
+    def _context(self, form):
+        # The catalogue drives the dependent dropdown in the browser, so a
+        # paper added or renamed in the admin shows up without a code change.
+        return {
+            'form': form,
+            'paper_catalogue': json.dumps(paper_types.catalogue()),
+        }
 
     def _store(self, request, application, kind, uploaded):
         _, content_type = validate_upload(uploaded)
@@ -336,12 +352,7 @@ class ApplicationScheduleView(OfficerRequiredMixin, View):
             return render(request, self.template_name, self._context(application, form))
 
         try:
-            apply_schedule(
-                application,
-                primary=form.primary_schedule(),
-                paper_schedules=form.paper_schedules(),
-                request=request,
-            )
+            apply_schedule(application, form.schedule(), request=request)
         except ConfirmationError as exc:
             messages.error(request, str(exc))
             return render(request, self.template_name, self._context(application, form))
@@ -364,19 +375,13 @@ class ApplicationScheduleView(OfficerRequiredMixin, View):
         return application
 
     def _form(self, application, data=None):
-        return ScheduleStepForm(
-            data,
-            exam_type=application.exam_type,
-            shared_default=settings.FLIGHT_DISPATCH_SHARED_SCHEDULE_DEFAULT,
-        )
+        return ScheduleStepForm(data)
 
     def _context(self, application, form):
         return {
             'application': application,
             'form': form,
             'exams': application.exam_records.all(),
-            'paper_1': Paper.PAPER_1,
-            'paper_2': Paper.PAPER_2,
         }
 
 

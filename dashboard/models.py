@@ -15,7 +15,11 @@ class ActivityLog(models.Model):
         OCR_COMPLETED = 'ocr_done', 'OCR completed'
         OCR_FAILED = 'ocr_failed', 'OCR failed'
         OCR_EDITED = 'ocr_edited', 'OCR result corrected'
-        EXAM_TYPE_MISMATCH = 'type_mismatch', 'Examination type mismatch'
+        # The stored value predates the category/paper split and is kept so
+        # existing audit entries stay readable.
+        EXAM_CATEGORY_MISMATCH = 'type_mismatch', 'Examination category mismatch'
+        PAPER_TYPE_MISMATCH = 'paper_mismatch', 'Paper type mismatch'
+        PAPER_TYPE_UNRESOLVED = 'paper_unresolved', 'Paper type could not be determined'
         CONFIRMED = 'confirmed', 'Application confirmed'
         EXAM_ID_GENERATED = 'exam_id', 'Examination ID generated'
         SCHEDULED = 'scheduled', 'Examination scheduled'
