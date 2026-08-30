@@ -58,7 +58,7 @@
           <td class="px-4 py-3">{{ record.exam.receipt_number }}</td>
           <td class="px-4 py-3">{{ record.exam.get_exam_category_display }}{% if record.exam.paper_type_label %} · {{ record.exam.paper_type_label }}{% endif %}</td>
           <td class="px-4 py-3">{{ record.exam.exam_date }} · {{ record.exam.exam_time }}</td>
-          <td class="px-4 py-3">{{ record.exam.company_name }}</td>
+          <td class="px-4 py-3">{{ record.exam.company_display }}</td>
           <td class="px-4 py-3">{{ record.created_at|date:"d M Y, H:i" }}</td>
           <td class="px-4 py-3 text-right">{{ record.pdf_download_count }}</td>
           <td class="px-4 py-3 text-right">

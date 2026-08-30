@@ -45,7 +45,7 @@ class ExamScheduleAdmin(admin.ModelAdmin):
                 obj.candidate_name,
                 obj.exam_number,
                 obj.receipt_number,
-                obj.company_name,
+                obj.company_display,
                 obj.get_exam_category_display(),
                 obj.paper_type_label,
                 obj.exam_date,

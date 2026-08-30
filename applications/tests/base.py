@@ -69,6 +69,27 @@ Bola Ogunleye
 Training Manager
 """
 
+# An individual applying for themselves: no letterhead, no organisation
+# anywhere on the page. The applicant is recorded as PRIVATE.
+PRIVATE_APPLICANT_LETTER = """The Director General
+Nigeria Civil Aviation Authority
+Corporate Headquarters
+Abuja.
+
+Dear Sir,
+
+APPLICATION FOR PILOT EXAMINATION
+
+I hereby apply to sit the examination on the date below:
+
+1. CHINEDU OKAFOR
+
+Thank you.
+
+Yours faithfully,
+Chinedu Okafor
+"""
+
 CABIN_CREW_LETTER = """OVERLAND AIRWAYS LIMITED
 
 APPLICATION FOR CABIN CREW EXAMINATION

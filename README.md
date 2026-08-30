@@ -219,7 +219,11 @@ on the page. The recipient, the signatory and the accountable manager are
 excluded by the surrounding structure and vocabulary.
 
 **Company** is the applicant, taken from the letterhead or the `For:` line of
-the signature block -- never the NCAA addressee.
+the signature block -- never the NCAA addressee. Not every application arrives
+on headed paper: where the letter names no organisation, the applicant is
+recorded and printed as **PRIVATE**, since a blank company on a slip reads as
+a missing value rather than as the fact it is. The officer can name a company
+on the verification screen either way.
 
 **The receipt** yields one field: the Official Receipt Number. An NCAA receipt
 also carries an invoice number, a date, a period and an amount, so the number

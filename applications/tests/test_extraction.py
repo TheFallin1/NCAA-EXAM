@@ -3,6 +3,7 @@ from django.test import SimpleTestCase, override_settings
 
 from applications.services.extraction import ApplicationExtractor, ReceiptExtractor
 from applications.services.ocr import OCRLine, OCRResult
+from exams.models import PRIVATE_APPLICANT
 
 
 def result(text, confidence=97.0):
@@ -164,10 +165,23 @@ APPLICATION FOR PILOT EXAMINATION"""
         )
 
     def test_the_recipient_is_not_taken_as_the_applicant(self):
+        """The NCAA addressee is not the applicant, so it names no company."""
         text = """The Director General
 Nigeria Civil Aviation Authority
 APPLICATION FOR PILOT EXAMINATION"""
-        self.assertEqual(self.extractor.extract_company(result(text)), '')
+        self.assertEqual(
+            self.extractor.extract_company(result(text)), PRIVATE_APPLICANT
+        )
+
+    def test_a_letter_with_no_letterhead_reads_as_private(self):
+        """An individual applying for themselves has no company to name."""
+        text = """Dear Sir,
+APPLICATION FOR PILOT EXAMINATION
+I hereby apply to sit the examination.
+1. CHINEDU OKAFOR"""
+        self.assertEqual(
+            self.extractor.extract_company(result(text)), PRIVATE_APPLICANT
+        )
 
 
 class ReceiptExtractionTests(SimpleTestCase):

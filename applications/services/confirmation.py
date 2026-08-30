@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from dashboard.audit import log_activity
 from dashboard.models import ActivityLog
-from exams.models import ExamSchedule
+from exams.models import PRIVATE_APPLICANT, ExamSchedule
 from exams.services import generate_exam_number
 
 from ..models import Application, ProcessingStatus
@@ -100,7 +100,9 @@ def confirm(application, request=None, override_duplicate_receipt=False):
                 candidate_name=candidate.name,
                 exam_number=generate_exam_number(application.exam_category),
                 receipt_number=application.receipt_number,
-                company_name=application.company_name,
+                # The officer may clear the box; an unnamed applicant is
+                # still a private one, not a blank.
+                company_name=application.company_name or PRIVATE_APPLICANT,
                 exam_category=application.exam_category,
                 paper_type=application.paper_type,
                 exam_date=None,

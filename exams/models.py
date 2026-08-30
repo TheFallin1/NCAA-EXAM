@@ -7,6 +7,14 @@ from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 
+#: What the company reads as when the application came from an individual.
+#: Not every letter is written on an organisation's paper -- a candidate
+#: applying for themselves has no letterhead and no organisation to name -- and
+#: a blank company on an examination slip looks like something went missing
+#: rather than like the fact it is.
+PRIVATE_APPLICANT = 'PRIVATE'
+
+
 class ExamCategory(models.TextChoices):
     """The examination categories NCAA runs.
 
@@ -239,6 +247,15 @@ class ExamSchedule(models.Model):
     @property
     def exam_category_display(self):
         return self.get_exam_category_display()
+
+    @property
+    def company_display(self):
+        """The applicant for the slip and every listing.
+
+        Records created before the private-applicant rule can hold a blank
+        company; they read as PRIVATE too rather than as an empty row.
+        """
+        return self.company_name or PRIVATE_APPLICANT
 
     @property
     def paper_type_label(self):

@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from django.conf import settings
 
 from exams import exam_categories, paper_types
+from exams.models import PRIVATE_APPLICANT
 
 # ---------------------------------------------------------------------------
 # Vocabulary
@@ -217,10 +218,16 @@ class ApplicationExtractor:
         return matches
 
     def extract_company(self, ocr_result):
-        """Best-effort organisation name from the letterhead.
+        """The applying organisation, or PRIVATE where there is none.
 
-        Only a convenience: the officer can always correct it on the review
-        screen, and nothing blocks if it is not found.
+        Not every application arrives on headed paper: a candidate applying for
+        themselves has no organisation to name. That is a fact about the
+        application, not a failed read, so it is recorded as PRIVATE rather
+        than left blank -- which on a slip would look like something went
+        missing.
+
+        The officer can always correct it on the review screen, and nothing
+        blocks either way.
         """
         organisation_words = (
             'LIMITED', 'LTD', 'PLC', 'AIRLINE', 'AIRLINES', 'AIRWAYS',
@@ -248,7 +255,9 @@ class ApplicationExtractor:
                 continue
             if any(word in upper.split() or word in upper for word in organisation_words):
                 return text
-        return ''
+
+        # No letterhead and no organisation in the signature block.
+        return PRIVATE_APPLICANT
 
     def _is_recipient(self, upper):
         """True for lines addressing NCAA rather than naming the applicant."""

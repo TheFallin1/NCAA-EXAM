@@ -120,7 +120,7 @@ def _slip_elements(exam, doc, styles, context):
         ('Candidate Name', exam.candidate_name),
         ('Exam Number', exam.exam_number),
         ('Receipt Number', exam.receipt_number),
-        ('Company', exam.company_name),
+        ('Company', exam.company_display),
         ('Exam Category', exam.get_exam_category_display()),
         ('Paper', exam.paper_type_label or 'Not specified'),
     ]

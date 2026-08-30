@@ -13,7 +13,7 @@
       <div class="row"><span class="label">Candidate Name</span><span class="value">{{ exam.candidate_name }}</span></div>
       <div class="row"><span class="label">Exam Number</span><span class="value">{{ exam.exam_number }}</span></div>
       <div class="row"><span class="label">Receipt Number</span><span class="value">{{ exam.receipt_number }}</span></div>
-      <div class="row"><span class="label">Company</span><span class="value">{{ exam.company_name }}</span></div>
+      <div class="row"><span class="label">Company</span><span class="value">{{ exam.company_display }}</span></div>
       <div class="row"><span class="label">Exam Category</span><span class="value">{{ exam.get_exam_category_display }}</span></div>
       <div class="row"><span class="label">Paper</span><span class="value">{{ exam.paper_type_label|default:"Not specified" }}</span></div>
 {% if not exam.has_papers %}

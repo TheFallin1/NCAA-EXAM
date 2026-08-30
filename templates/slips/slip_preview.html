@@ -27,7 +27,7 @@
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd class="w-3/5 font-medium text-slate-900 dark:text-slate-900">{{ exam.candidate_name }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.exam_number }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.receipt_number }}</dd></div>
-        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.company_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.company_display }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Category</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.get_exam_category_display }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Paper</dt><dd class="w-3/5 text-slate-900 dark:text-slate-900">{{ exam.paper_type_label|default:"Not specified" }}</dd></div>
         {% if not exam.has_papers %}

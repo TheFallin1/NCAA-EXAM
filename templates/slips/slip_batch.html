@@ -57,7 +57,7 @@
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Candidate</dt><dd class="w-3/5 font-medium text-slate-900">{{ slip.exam.candidate_name }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Number</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.exam_number }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Receipt</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.receipt_number }}</dd></div>
-        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.company_name }}</dd></div>
+        <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Company</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.company_display }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Exam Category</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.get_exam_category_display }}</dd></div>
         <div class="flex border-b border-slate-100 py-2"><dt class="w-2/5 font-semibold text-slate-500">Paper</dt><dd class="w-3/5 text-slate-900">{{ slip.exam.paper_type_label|default:"Not specified" }}</dd></div>
         {% if not slip.exam.has_papers %}
